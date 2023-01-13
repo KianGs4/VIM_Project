@@ -9,15 +9,23 @@
 #include <stdbool.h>
 
 #define MAX_length  102
-
+#define MAX_LINE 200 
+#define Empty_line  "#@!$$$*KIAN_GSVIM$$$!@#"
 void createdir(const char * address) ;
 void translate_dir(char * address) ; 
-void translate_string(char * string) ; 
+void translate_string(char * string) ;
+
 void createfile(char * address) ; 
 void insertstr(char * address  , char * string  , int line  , int byte ) ; 
-
+void cat(char * address) ; 
+void removestr(char * address , int line ,  int byte , int size) ; 
 
 int main(){ 
+    char a[100] ; 
+    int l , b , s ;
+    scanf("%s%d%d%d" , a , &l , &b , &s ) ; 
+    removestr(a , l , b , s ) ; 
+    return 0 ; 
 }
 
 
@@ -34,9 +42,12 @@ void createfile(char * address){
 
 void insertstr(char * address  , char * string  , int line  , int byte ) {
  translate_dir(address) ; 
+ char address2[MAX_length] ; 
+ strcpy(address2 , address) ; 
+ strcat(address2 , "temp") ; 
  FILE * my_file = fopen(address , "r") ; 
- FILE * temp_file = fopen("temp.txt" , "w") ; 
- char newline[MAX_length] ; 
+ FILE * temp_file = fopen(address2 , "w") ; 
+ char newline[MAX_length] = {0} ; 
  for(int i = 0 ; i < byte ; i ++ ){
     newline[i] = ' ' ; 
  }
@@ -46,7 +57,7 @@ void insertstr(char * address  , char * string  , int line  , int byte ) {
  int current_line = 1 ;  
  bool keep_reading = true ; 
  while(keep_reading == true){
-    fgets( buffer , MAX_length , my_file ) ; 
+    fgets( buffer , MAX_length , my_file )  ; 
     if(feof(my_file)){
         if(current_line == line){
             fputs(newline , temp_file) ; 
@@ -65,10 +76,89 @@ void insertstr(char * address  , char * string  , int line  , int byte ) {
     current_line ++ ; 
    }
  fclose(my_file) ; 
- fclose(temp_file) ; 
+ fclose(temp_file) ;
+   remove(address) ; 
+   rename(address2 , address ) ; 
+ }
+
+void cat(char * address) {
+    FILE * my_file = fopen(address , "r") ; 
+    char buffer[MAX_length] ; 
+    bool keep_reading = true ; 
+    while(keep_reading == true){
+        fgets(buffer , MAX_length , my_file) ; 
+        printf("%s" , buffer) ;
+        if(feof(my_file)) keep_reading = false ;  
+    }
+
+
  }
 
 
+void removestr(char * address , int line ,  int byte , int size) {
+    FILE * my_file = fopen(address  , "r") ; 
+    char address2[MAX_length] ; 
+    strcpy(address2 , address) ; 
+    strcat(address2 , "temp") ; 
+    FILE * temp_file = fopen(address2 , "w") ; 
+   //section 1 : 
+    char ** buffer = (char **)malloc(MAX_LINE * sizeof(char *)) ; 
+    int k = 0 ; 
+    bool keep_reading = true ; 
+    while(keep_reading){
+     *(buffer + k) = malloc(MAX_length * sizeof(char)) ; 
+     fgets(buffer[k] , MAX_length , my_file) ; 
+     if(feof(my_file)) keep_reading = false ; 
+     k ++ ; 
+    }
+    //section 2 :
+    int pointer_byte = size-1 ;
+    int start = pointer_byte ; 
+    int pointer_line = line - 1 ; 
+    while(1){
+         start -- ;
+         size -- ;  
+         if(start == -2){
+            char temp_buffer[MAX_length] ; 
+            for(int i = 0 ; ; i ++){
+                if(buffer[pointer_line][i + pointer_byte] == '\0') break ; 
+                temp_buffer[i] = buffer[pointer_line][i+pointer_byte] ;
+            }
+
+           pointer_line -- ; 
+           pointer_byte = strlen(buffer[pointer_line]) - 1 ; 
+           start = pointer_byte ;
+           strcat(buffer[pointer_line] , temp_buffer) ; 
+           strcpy(buffer[pointer_line + 1 ] , Empty_line) ; 
+         }
+         if(size == 0 ){
+            char temp_buffer[MAX_length] ; 
+            for(int i = 0 ; i <= start ; i ++ ){
+                temp_buffer[i] = buffer[pointer_line][i] ; 
+            }
+
+            int distance = pointer_byte + 1 - start ;
+            for(int i = start+1 ; ; i ++ ){
+              if(buffer[pointer_line][i + distance] == '\0') break ;
+              temp_buffer[i] = buffer[pointer_line][i + distance] ;  
+            }
+         
+         strcpy(buffer[pointer_line] , temp_buffer) ; 
+         break ; 
+        }
+    }
+    //add to file 
+   for(int j = 0 ; j <= k ; j ++ ){
+    if(strcmp(buffer[j] , Empty_line) != 0 ) {
+        fputs(buffer[j] , temp_file) ; 
+    }
+   }
+
+   fclose(my_file) ; 
+   fclose(temp_file) ; 
+   remove(address) ; 
+   rename(address2 , address ) ; 
+}
 
 
 
@@ -101,13 +191,17 @@ void createdir(const char * address) {
      free(tree_path) ; 
     }
  }
-void translate_dir(char * address) {
-    int k = 1 ; 
-    if(address[0] == '\"') k ++ ; 
 
+void translate_dir(char * address) {
+    int k = 0 ; 
+    if(address[0] == '\"') k ++ ; 
+    if(address[0] == '/' || (address[0] == '\"' && address[1] =='/') ) k++ ;
     for(int i = 0 ; i < strlen(address)  ; i++ ){
     address[i] = address[i+k] ; 
    }
    if(k == 2) address[strlen(address) - 1] = address[strlen(address)] ; 
 
  } 
+
+
+
