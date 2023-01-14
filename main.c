@@ -18,13 +18,13 @@ void translate_string(char * string) ;
 void createfile(char * address) ; 
 void insertstr(char * address  , char * string  , int line  , int byte ) ; 
 void cat(char * address) ; 
-void removestr(char * address , int line ,  int byte , int size) ; 
+void removestr(char * address , int line ,  int byte , int size , int ward) ; 
 
 int main(){ 
     char a[100] ; 
     int l , b , s ;
     scanf("%s%d%d%d" , a , &l , &b , &s ) ; 
-    removestr(a , l , b , s ) ; 
+    removestr(a , l , b , s , 1 ) ; 
     return 0 ; 
 }
 
@@ -80,7 +80,7 @@ void insertstr(char * address  , char * string  , int line  , int byte ) {
    remove(address) ; 
    rename(address2 , address ) ; 
  }
-
+ 
 void cat(char * address) {
     FILE * my_file = fopen(address , "r") ; 
     char buffer[MAX_length] ; 
@@ -95,8 +95,8 @@ void cat(char * address) {
  }
 
 
-void removestr(char * address , int line ,  int byte , int size) {
-    FILE * my_file = fopen(address  , "r") ; 
+void removestr(char * address , int line ,  int byte , int size , int ward  ) {
+    FILE * my_file = fopen(address  , "r+") ; 
     char address2[MAX_length] ; 
     strcpy(address2 , address) ; 
     strcat(address2 , "temp") ; 
@@ -111,54 +111,79 @@ void removestr(char * address , int line ,  int byte , int size) {
      if(feof(my_file)) keep_reading = false ; 
      k ++ ; 
     }
+
     //section 2 :
-    int pointer_byte = size-1 ;
+    int pointer_byte = byte-1 ;
     int start = pointer_byte ; 
     int pointer_line = line - 1 ; 
     while(1){
-         start -- ;
-         size -- ;  
-         if(start == -2){
-            char temp_buffer[MAX_length] ; 
+         start += ward ;
+         size -- ;   
+         if(start == -2 ){
+            char temp_buffer[MAX_length] = {0} ; 
             for(int i = 0 ; ; i ++){
-                if(buffer[pointer_line][i + pointer_byte] == '\0') break ; 
-                temp_buffer[i] = buffer[pointer_line][i+pointer_byte] ;
+                if(ward == -1){
+                if(buffer[pointer_line][i + pointer_byte +1 ] == '\0') break ; 
+                temp_buffer[i] = buffer[pointer_line][i+pointer_byte + 1 ] ;
+                }
             }
-
            pointer_line -- ; 
            pointer_byte = strlen(buffer[pointer_line]) - 1 ; 
            start = pointer_byte ;
+           buffer[pointer_line][strlen(buffer[pointer_line]) - 1] =  buffer[pointer_line][strlen(buffer[pointer_line])] ; 
            strcat(buffer[pointer_line] , temp_buffer) ; 
            strcpy(buffer[pointer_line + 1 ] , Empty_line) ; 
          }
+         
+         if(start ==  (strlen(buffer[pointer_line]))){
+            start -- ; 
+            buffer[pointer_line][strlen(buffer[pointer_line]) - 1] = buffer[pointer_line][strlen(buffer[pointer_line])] ; 
+            strcat(buffer[pointer_line] , buffer[pointer_line + 1]) ; 
+            for(int i = pointer_line + 1 ; i < k - 1 ; i ++ ) {
+            strcpy(buffer[i] , buffer[i+1]) ; 
+            }
+            k -- ; 
+         }
+
          if(size == 0 ){
-            char temp_buffer[MAX_length] ; 
+                char temp_buffer[MAX_length] = {0} ; 
+            if(ward == -1){
             for(int i = 0 ; i <= start ; i ++ ){
                 temp_buffer[i] = buffer[pointer_line][i] ; 
             }
 
-            int distance = pointer_byte + 1 - start ;
+            int distance = pointer_byte   - start ;
             for(int i = start+1 ; ; i ++ ){
               if(buffer[pointer_line][i + distance] == '\0') break ;
               temp_buffer[i] = buffer[pointer_line][i + distance] ;  
             }
          
-         strcpy(buffer[pointer_line] , temp_buffer) ; 
-         break ; 
-        }
+         strcpy(buffer[pointer_line] , temp_buffer) ;
+         break ;  
+           }else{
+            for(int i = 0 ; i < pointer_byte ; i++){
+                temp_buffer[i] = buffer[pointer_line][i] ; 
+             }
+            for(int i = 0  ; i < strlen(buffer[pointer_line]) - start ; i ++  ){
+            temp_buffer[i + pointer_byte] = buffer[pointer_line][start + i] ; 
+            }
+            strcpy(buffer[pointer_line] , temp_buffer) ; 
+            break ; 
+      }
     }
+}
     //add to file 
-   for(int j = 0 ; j <= k ; j ++ ){
+   for(int j = 0 ; j < k ; j ++ ){
     if(strcmp(buffer[j] , Empty_line) != 0 ) {
-        fputs(buffer[j] , temp_file) ; 
+            fputs(buffer[j] , temp_file) ;
     }
    }
-
    fclose(my_file) ; 
    fclose(temp_file) ; 
    remove(address) ; 
    rename(address2 , address ) ; 
 }
+
 
 
 
