@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <windows.h>
 
 #define MAX_length  102
 #define MAX_LINE 200 
@@ -15,16 +16,21 @@ void createdir(const char * address) ;
 void translate_dir(char * address) ; 
 void translate_string(char * string) ;
 
+
 void createfile(char * address) ; 
 void insertstr(char * address  , char * string  , int line  , int byte ) ; 
 void cat(char * address) ; 
 void removestr(char * address , int line ,  int byte , int size , int ward) ; 
+void copystr(char * address , int line  , int byte , int size , int ward ) ; 
+void cutstr(char * address , int line  , int byte , int size , int ward) ; 
+void pastestr(char * address , int line , int byte) ; 
 
 int main(){ 
     char a[100] ; 
-    int l , b , s ;
-    scanf("%s%d%d%d" , a , &l , &b , &s ) ; 
-    removestr(a , l , b , s , 1 ) ; 
+    int l , b , s , w  ;
+    scanf("%s%d%d" , a , &l , &b) ; 
+    pastestr(a , l , b) ; 
+/// insertstr(a , "salam" , l , b) ; 
     return 0 ; 
 }
 
@@ -170,8 +176,8 @@ void removestr(char * address , int line ,  int byte , int size , int ward  ) {
             strcpy(buffer[pointer_line] , temp_buffer) ; 
             break ; 
       }
-    }
-}
+     }
+   }
     //add to file 
    for(int j = 0 ; j < k ; j ++ ){
     if(strcmp(buffer[j] , Empty_line) != 0 ) {
@@ -182,11 +188,50 @@ void removestr(char * address , int line ,  int byte , int size , int ward  ) {
    fclose(temp_file) ; 
    remove(address) ; 
    rename(address2 , address ) ; 
+ }
+
+
+void copystr(char * address , int line  , int byte , int size , int ward ) {
+
+    char readfile[MAX_length] = {0} ; 
+    char buffer[MAX_length] ; 
+     FILE * my_file = fopen(address  , "r+") ;
+     for(int i = 0 ; i < line - 1 ; i ++ ){
+        fgets(buffer , MAX_length  , my_file) ; 
+     }
+     int of_the_line = ftell(my_file) ; 
+
+     if(ward == -1){
+        of_the_line -= size ; 
+     }
+
+     fseek(my_file , of_the_line +  byte-1  , SEEK_SET)  ;
+     fread( readfile , 1 , size  , my_file) ; 
+    const size_t len = strlen(readfile) + 1;
+     HGLOBAL hMem =  GlobalAlloc(GMEM_MOVEABLE, len);
+     memcpy(GlobalLock(hMem), readfile, len);
+     GlobalUnlock(hMem);
+     OpenClipboard(0);
+     EmptyClipboard();
+     SetClipboardData(CF_TEXT, hMem);
+     CloseClipboard(); 
+     fclose(my_file) ;       
+
+ }
+
+void cutstr(char * address , int line , int byte , int size ,  int ward){
+    copystr(address , line , byte , size , ward) ; 
+    removestr(address , line , byte , size , ward) ; 
+ }
+void pastestr(char * address , int line , int byte ){
+    char string[MAX_length] ; 
+    HANDLE h;
+    OpenClipboard(NULL);
+    h = GetClipboardData(CF_TEXT);
+    strcpy(string , (char *)h) ; 
+    CloseClipboard();
+   insertstr(address , string , line , byte ) ; 
 }
-
-
-
-
 void translate_string(char * string) {
     if(string[0] == '\"'){
         for(int i = 0 ; i < strlen(string) ; i++) {
