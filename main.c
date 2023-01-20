@@ -13,8 +13,9 @@
 #define MAX_LINE 200 
 #define Empty_line  "#@!$$$*KIAN_GSVIM$$$!@#"
 #define MAX_FINDCASE 1000 
+#define MAX_FILES 10 
 
-void createdir(const char * address) ;
+void create_dir(const char * address) ;
 void translate_dir(char * address) ; 
 void translate_string(char * string) ;
 void translate_to_word(char * address , int *pointer ) ; 
@@ -28,37 +29,38 @@ void cutstr(char * address , int line  , int byte , int size , int ward) ;
 void paste_str(char * address , int line , int byte) ; 
 void find_str( char * address , char * string)  ;
 void replace_str(char * address , char * string1 , char * string2  ) ; 
+void grep_str( int num_file  , char files[MAX_FILES][MAX_LENGTH]  , char * string) ; 
 
-struct option{
+struct option1{
     bool byword ; 
     int at ; 
     bool count ; 
     bool all ;  
 }opt_find ; 
 
+struct option2{
+    bool l ; 
+    bool c ; 
+}opt_grep ; 
 
 
 int main(){ 
-    opt_find.byword = false    ;
-    opt_find.at = 0 ; 
-    opt_find.count = false ; 
-    opt_find.all = true  ; 
-    char * a ;
-    char string[100]  ;
-   // int b = 149 ;
-    scanf("%[^\n]s" , string) ;
-    scanf("%s"  , a) ; 
-    char string2[100] = "[?]"    ; 
-  //  replace_str(a  , string  , string2) ; 
-   //find_str(a , string)  ;
-   remove_str(a  , 2 , 0 , 6 , 1) ;
+    opt_grep.c = false  ; 
+    opt_grep.l = false ; 
+    char * string ; 
+    char  address[MAX_FILES][MAX_LENGTH] ; 
+    scanf("%s" , string) ;
+    scanf("%s" , address[0]) ; 
+    scanf("%s" , address[1]) ; 
+    scanf("%s" , address[2]) ;
+    grep_str(3 , address , string) ; 
     return 0 ; 
 }
 
 
 void createfile(char * address){
     translate_dir(address) ; 
-    createdir(address)  ;    
+    create_dir(address)  ;    
     if (access(address , F_OK) == 0) {
         printf("file already exists\n") ; 
     }else{
@@ -396,6 +398,40 @@ void replace_str(char * address , char * string1 , char * string2  ){
     }
 
  } 
+
+void grep_str(int num_file  , char files[MAX_FILES][MAX_LENGTH]  , char * string) {
+    int lines_with_word = 0 ; 
+    for(int i = 0 ; i < num_file ; i ++ ){
+        FILE * my_file = fopen(files[i] , "r") ;
+        bool keep_reading = true ; 
+        char buffer_line[MAX_LENGTH] ; 
+        int current_letter = 0 ;
+        int size = strlen(string) ;
+        while(fgets(buffer_line , MAX_LENGTH , my_file) != NULL && keep_reading == true ){
+            for(int j = 0 ; j < strlen(buffer_line) ; j ++ ){
+                if(current_letter == size){
+                    lines_with_word ++ ;
+                    current_letter = 0 ;  
+                    if(opt_grep.c != true){
+                        if(opt_grep.l != true){
+                         printf("%s: %s" , files[i]  , buffer_line ) ;
+                            if(buffer_line[strlen(buffer_line) - 1] != '\n') printf("\n") ; 
+                            }else{
+                            printf("%s\n"  , files[i]) ; 
+                            keep_reading = false ;  
+                        }
+                    }
+                    break ; 
+                }
+                if(string[current_letter] != buffer_line[j]) current_letter = 0 ; else 
+                 current_letter ++ ; 
+            }
+        }
+        fclose(my_file) ; 
+    }
+    if(opt_grep.c) printf("%d\n" , lines_with_word) ;
+ } 
+
 void translate_string(char * string) {
     if(string[0] == '\"'){
         for(int i = 0 ; i < strlen(string) ; i++) {
@@ -404,7 +440,7 @@ void translate_string(char * string) {
         string[strlen(string) - 1] = string[strlen(string)] ; 
     }
  }
-void createdir(const char * address) {
+void create_dir(const char * address) {
 
     int slashes = 0 , i = 0  ; 
      while(1){
@@ -438,7 +474,6 @@ void translate_dir(char * address) {
  } 
 
 void translate_to_word(char * address , int *pointer ) {
-
     translate_dir(address) ; 
     FILE * my_file = fopen(address , "r") ;
     char buffer_word[MAX_LENGTH] ;  
@@ -464,6 +499,4 @@ void translate_to_word(char * address , int *pointer ) {
     }
   fclose(my_file) ; 
  }
-
-
 
