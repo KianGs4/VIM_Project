@@ -14,11 +14,18 @@
 #define Empty_line  "#@!$$$*KIAN_GSVIM$$$!@#"
 #define MAX_FINDCASE 1000 
 #define MAX_FILES 10 
-
+int current_command = 0 ; 
 void create_dir(const char * address) ;
 void translate_dir(char * address) ; 
 void translate_string(char * string) ;
 void translate_to_word(char * address , int *pointer ) ; 
+
+int first_brace_finder(char * string) ; 
+int end_brace_finder(char * string , int* check) ; 
+bool generate_brace(char * address , int def , int  start[2] , int end[2]) ; 
+void correct_first_brace(char * address , int line , int byte ) ; 
+void correct_end_brace(char * address , int*line , int byte , int start ) ; 
+int start_printing(char * string) ; 
 
 void createfile(char * address) ; 
 void insertstr(char * address  , char * string  , int line  , int byte ) ; 
@@ -30,6 +37,8 @@ void paste_str(char * address , int line , int byte) ;
 void find_str( char * address , char * string)  ;
 void replace_str(char * address , char * string1 , char * string2  ) ; 
 void grep_str( int num_file  , char files[MAX_FILES][MAX_LENGTH]  , char * string) ; 
+void closing_pair(char * address  ) ; 
+
 
 struct option1{
     bool byword ; 
@@ -45,15 +54,24 @@ struct option2{
 
 
 int main(){ 
-    opt_grep.c = false  ; 
-    opt_grep.l = false ; 
-    char * string ; 
-    char  address[MAX_FILES][MAX_LENGTH] ; 
-    scanf("%s" , string) ;
-    scanf("%s" , address[0]) ; 
-    scanf("%s" , address[1]) ; 
-    scanf("%s" , address[2]) ;
-    grep_str(3 , address , string) ; 
+    // opt_grep.c = false  ; 
+    // opt_grep.l = false ; 
+    // char * string ; 
+    // char  address[MAX_FILES][MAX_LENGTH] ; 
+    // scanf("%s" , string) ;
+    // scanf("%s" , address[0]) ; 
+    // scanf("%s" , address[1]) ; 
+    // scanf("%s" , address[2]) ;
+    // grep_str(3 , address , string) ; 
+    // char address[MAX_LENGTH] = "file.txt" ; 
+    // char * string = "add" ; 
+    // insertstr(address , string  , 1 , 0 ) ;
+    char address[MAX_LENGTH] ; 
+    int start[2] ; 
+    int  end[2] ; 
+    scanf("%s" , address) ; 
+    //printf("%d" , generate_brace(address , -1 , start  , end ) ) ; 
+    closing_pair(address) ;
     return 0 ; 
 }
 
@@ -129,7 +147,7 @@ void insertstr(char * address  , char * string  , int line  , int byte ) {
  fclose(my_file) ; 
  fclose(temp_file) ;
    remove(address) ; 
-   rename(address2 , address ) ; 
+   rename(address2 , address) ; 
  }
  
 void cat(char * address) {
@@ -431,6 +449,20 @@ void grep_str(int num_file  , char files[MAX_FILES][MAX_LENGTH]  , char * string
     }
     if(opt_grep.c) printf("%d\n" , lines_with_word) ;
  } 
+void closing_pair(char * address ) {
+     int dif_line = -1 ; 
+     int start[2] , end[2] ;
+     int space = 0 ;
+     while(generate_brace(address , dif_line , start , end)) {
+        space = 0 ;
+        if(end[1] == start[1] +1) space = 1 ; 
+          correct_end_brace(address , &end[0] , end[1] , 4)  ;
+         correct_first_brace(address , start[0] , start[1]) ;
+         end[0] += space ; 
+         
+         dif_line = start[0] ; 
+     }
+ } 
 
 void translate_string(char * string) {
     if(string[0] == '\"'){
@@ -474,6 +506,7 @@ void translate_dir(char * address) {
  } 
 
 void translate_to_word(char * address , int *pointer ) {
+
     translate_dir(address) ; 
     FILE * my_file = fopen(address , "r") ;
     char buffer_word[MAX_LENGTH] ;  
@@ -500,3 +533,167 @@ void translate_to_word(char * address , int *pointer ) {
   fclose(my_file) ; 
  }
 
+bool generate_brace(char * address , int dif_line  , int start[2] , int end[2] ){
+    translate_dir(address) ; 
+    FILE * my_file = fopen(address , "r") ; 
+    char buffer_line[MAX_LENGTH] ;  
+    int start_line = 1 ; 
+    int line_end = 1 ;
+    int check = 0  ; 
+    while(fgets(buffer_line , MAX_LENGTH , my_file) != NULL){
+
+       if(start_line <= dif_line){
+        start_line ++ ; 
+       }else{
+        if(check == 0){
+           start[1] = first_brace_finder(buffer_line) ;
+           if(start[1] != -1){
+            start[0] = start_line ; 
+            check = 1 ; 
+            line_end = start_line ; 
+           }else start_line ++ ; 
+        }
+        if(check != 0 ){
+            if(line_end == start_line){
+                for(int i = start[1]+1 ; i < strlen(buffer_line) ; i ++ ){
+                    if(buffer_line[i] == '{') check ++ ;
+                    if(buffer_line[i] == '}') check -- ; 
+                    if(check == 0 ){
+                        end[0] = line_end ; 
+                        end[1] = i ;
+                        check = 10000 ;  
+                        break ; 
+                    }
+                }
+            }else{
+                end[1] = end_brace_finder(buffer_line , &check) ; 
+                if(end[1] != -1){
+                     end[0] = line_end ; 
+                        check = 10000 ;  
+                }
+            }
+            line_end ++ ; 
+        }
+
+        if(check == 10000){
+            fclose(my_file) ;
+            return true ; 
+        }
+      }
+    }
+    fclose(my_file) ; 
+    return false ; 
+ }
+
+int first_brace_finder(char * string){
+   for(int i = 0 ; i < strlen(string) ; i ++){
+    if(string[i] =='{') return i ;
+   }
+   return -1 ; 
+ }
+
+int end_brace_finder(char * string  , int* check ) {
+
+    for(int i = 0 ; i < strlen(string) ; i ++){
+    if(string[i] =='}') (*check)-- ; 
+    if(string[i] =='{') (*check)++ ; 
+    if(*check == 0) return i ; 
+   }
+   return -1 ; 
+ }
+void correct_first_brace(char * address , int line , int byte ){
+    translate_dir(address) ; 
+    char address2[MAX_LENGTH] ={0} ; 
+    strcpy(address2 , address) ; 
+    strcat(address2 , "temp") ;
+    FILE * my_file = fopen(address , "r") ; 
+    FILE * temp_file = fopen(address2 , "w") ; 
+    char buffer_line[MAX_LENGTH] ;
+    int current_line = 1 ; 
+ while(fgets(buffer_line , MAX_LENGTH , my_file) != NULL){
+    if(current_line != line){
+        fputs(buffer_line , temp_file) ; 
+    }else{
+        char before_brace[MAX_LENGTH] = {0}  ; 
+        memcpy(before_brace , buffer_line  , byte+1 ) ;
+        for(int x = byte-1 ; ; x-- ){
+            if(before_brace[x] != ' '){
+                before_brace[x+1] = ' ' ; 
+                before_brace[x+2] = '{' ;
+                before_brace[x+3] = '\n' ;
+                before_brace[x+4] = '\0' ; 
+                fputs(before_brace , temp_file) ; 
+                break ; 
+            }
+          if(x == 0 || x == -1){
+            strcat(before_brace  , "\n") ;
+            fputs(before_brace , temp_file) ;
+            break ;
+          } 
+        }
+        for(int i = byte+1 ; i < strlen(buffer_line) ; i++){
+            printf("%c" , buffer_line[i]) ;
+            if(i == byte+1 && buffer_line[i] == '\n') continue ; 
+            fputc(buffer_line[i] , temp_file) ;
+        } 
+    }
+    current_line ++ ; 
+ }
+ fclose(my_file) ;
+ fclose(temp_file) ;
+ remove(address) ;
+ rename(address2 , address) ; 
+
+ }
+void correct_end_brace(char * address , int*line , int byte , int start ){ 
+ translate_dir(address) ; 
+    char address2[MAX_LENGTH] ={0} ; 
+    strcpy(address2 , address) ; 
+    strcat(address2 , "temp") ;
+    FILE * my_file = fopen(address , "r") ; 
+    FILE * temp_file = fopen(address2 , "w") ; 
+    char buffer_line[MAX_LENGTH] ;
+    int current_line = 1 ; 
+ while(fgets(buffer_line , MAX_LENGTH , my_file) != NULL){
+    if(current_line != *line){
+        fputs(buffer_line , temp_file) ; 
+    }else{
+        if(byte != 0 ){
+        char before_brace[MAX_LENGTH] ={0} ;
+        memcpy(before_brace , buffer_line , byte) ;
+        for(int x = byte - 1 ; ;x-- ){
+            if(x == -1) break ;
+            if(before_brace[x] != ' '){
+              strcat(before_brace , "\n") ;
+              fputs(before_brace , temp_file) ;
+              *line ++ ; 
+              current_line ++ ;
+              break ;
+           } 
+        } 
+      }
+      char  brace_line[MAX_LENGTH] ={0} ;
+      for(int j = 0 ; j < start -1 ; j ++){
+        brace_line[j] = ' ' ;
+      }
+      strcat(brace_line , "}\n") ; 
+      fputs(brace_line , temp_file) ; 
+      for(int z = byte + 1 ; z < strlen(buffer_line) ; z ++){
+        if(z == byte+1 && buffer_line[z] == '\n') continue ; 
+        fputc(buffer_line[z] , temp_file) ;
+      }  
+    }
+    current_line ++ ; 
+ }
+ fclose(my_file) ;
+ fclose(temp_file) ;
+ remove(address) ;
+ rename(address2 , address) ; 
+
+ }
+
+int start_printing(char * string) {
+    for(int i = 0 ; i < strlen(string) ; i ++){
+        if(string[i] != ' ') return i ; 
+    }
+ }
