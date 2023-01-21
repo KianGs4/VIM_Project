@@ -14,7 +14,8 @@
 #define Empty_line  "#@!$$$*KIAN_GSVIM$$$!@#"
 #define MAX_FINDCASE 1000 
 #define MAX_FILES 10 
-int current_command = 0 ; 
+int current_command = 0 ;
+
 void create_dir(const char * address) ;
 void translate_dir(char * address) ; 
 void translate_string(char * string) ;
@@ -459,7 +460,7 @@ void closing_pair(char * address ) {
           correct_end_brace(address , &end[0] , end[1] , 4)  ;
          correct_first_brace(address , start[0] , start[1]) ;
          end[0] += space ; 
-         
+
          dif_line = start[0] ; 
      }
  } 
@@ -617,6 +618,12 @@ void correct_first_brace(char * address , int line , int byte ){
         char before_brace[MAX_LENGTH] = {0}  ; 
         memcpy(before_brace , buffer_line  , byte+1 ) ;
         for(int x = byte-1 ; ; x-- ){
+             if(x == 0 || x == -1){
+            strcat(before_brace  , "\n") ;
+            fputs(before_brace , temp_file) ;
+            break ;
+            }
+
             if(before_brace[x] != ' '){
                 before_brace[x+1] = ' ' ; 
                 before_brace[x+2] = '{' ;
@@ -625,14 +632,8 @@ void correct_first_brace(char * address , int line , int byte ){
                 fputs(before_brace , temp_file) ; 
                 break ; 
             }
-          if(x == 0 || x == -1){
-            strcat(before_brace  , "\n") ;
-            fputs(before_brace , temp_file) ;
-            break ;
-          } 
         }
         for(int i = byte+1 ; i < strlen(buffer_line) ; i++){
-            printf("%c" , buffer_line[i]) ;
             if(i == byte+1 && buffer_line[i] == '\n') continue ; 
             fputc(buffer_line[i] , temp_file) ;
         } 
