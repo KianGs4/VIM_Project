@@ -20,7 +20,7 @@ void create_dir(const char * address) ;
 void translate_dir(char * address) ; 
 void translate_string(char * string) ;
 void translate_to_word(char * address , int *pointer ) ; 
-
+int  lines_of_file(char * adress  ) ; 
 int first_brace_finder(char * string) ; 
 int end_brace_finder(char * string , int* check) ; 
 bool generate_brace(char * address , int def , int  start[2] , int end[2]) ; 
@@ -28,6 +28,8 @@ void correct_first_brace(char * address , int line , int byte , int* end  ) ;
 void correct_end_brace(char * address , int*line , int byte  ) ; 
 int arrangr_by_space(char * string , int start , int end) ; 
 int start_printing(char * string) ;
+void show_cmp1(char * a , char * b  , int m ) ; 
+void show_cmp2(char * a  , int n ,  int m ) ;
 
 void createfile(char * address) ; 
 void insertstr(char * address  , char * string  , int line  , int byte ) ; 
@@ -40,7 +42,7 @@ void find_str( char * address , char * string)  ;
 void replace_str(char * address , char * string1 , char * string2  ) ; 
 void grep_str( int num_file  , char files[MAX_FILES][MAX_LENGTH]  , char * string) ; 
 void closing_pair(char * address  ) ; 
-
+void text_comprator(char * file1 , char * file2) ; 
 
 struct option1{
     bool byword ; 
@@ -56,24 +58,10 @@ struct option2{
 
 
 int main(){ 
-    // opt_grep.c = false  ; 
-    // opt_grep.l = false ; 
-    // char * string ; 
-    // char  address[MAX_FILES][MAX_LENGTH] ; 
-    // scanf("%s" , string) ;
-    // scanf("%s" , address[0]) ; 
-    // scanf("%s" , address[1]) ; 
-    // scanf("%s" , address[2]) ;
-    // grep_str(3 , address , string) ; 
-    // char address[MAX_LENGTH] = "file.txt" ; 
-    // char * string = "add" ; 
-    // insertstr(address , string  , 1 , 0 ) ;
-    char address[MAX_LENGTH] ; 
-    int start[2] ; 
-    int  end[2] ; 
-    scanf("%s" , address) ; 
-    //printf("%d" , generate_brace(address , -1 , start  , end ) ) ; 
-    closing_pair(address) ;
+    char  a[100] ; 
+    char  b[100] ; 
+    scanf("%s%s" , a , b) ;
+    text_comprator(a , b) ; 
     return 0 ; 
 }
 
@@ -451,6 +439,7 @@ void grep_str(int num_file  , char files[MAX_FILES][MAX_LENGTH]  , char * string
     }
     if(opt_grep.c) printf("%d\n" , lines_with_word) ;
  } 
+
 void closing_pair(char * address ) {
      int dif_line = -1 ; 
      int start[2] , end[2] ;
@@ -462,7 +451,32 @@ void closing_pair(char * address ) {
          dif_line = start[0] ; 
      }
  } 
-
+void text_comprator(char * file1 , char * file2){
+    int len1 = lines_of_file(file1) ; 
+    int len2 = lines_of_file(file2) ; 
+    FILE * file_1 = fopen(file1  , "r") ;
+    FILE * file_2 = fopen(file2  , "r") ; 
+    char buffer_1[MAX_LENGTH] ; 
+    char buffer_2[MAX_LENGTH] ; 
+    int max = (len2  > len1) ? len2 : len1 ; 
+    int min = (len2 <= len1) ? len2 : len1 ; 
+    for(int i = 0 ; i < min ; i ++ ){
+        fgets(buffer_1 , MAX_LENGTH , file_1) ; 
+        fgets(buffer_2 , MAX_LENGTH , file_2) ; 
+        if(strcmp(buffer_1 , buffer_2)){
+            if(buffer_1[strlen(buffer_1) -1 ] == '\n' ) buffer_1[strlen(buffer_1) - 1] = buffer_1[strlen(buffer_1)] ; 
+            if(buffer_2[strlen(buffer_2) -1 ] == '\n' ) buffer_2[strlen(buffer_2) - 1] = buffer_2[strlen(buffer_2)] ;
+            show_cmp1(buffer_1 , buffer_2 , i+1) ;  
+        }
+    }
+    for(int i = min ; i < max  ; i++ ){
+        if(len1 == max)  fgets(buffer_1 , MAX_LENGTH , file_1) ; else fgets(buffer_1 , MAX_LENGTH , file_2) ; 
+        if(buffer_1[strlen(buffer_1) -1 ] == '\n' ) buffer_1[strlen(buffer_1) - 1] = buffer_1[strlen(buffer_1)] ; 
+        show_cmp2(buffer_1 , i + 1 , max) ; 
+    }
+    fclose(file_1) ;
+    fclose(file_2) ;
+ } 
 void translate_string(char * string) {
     if(string[0] == '\"'){
         for(int i = 0 ; i < strlen(string) ; i++) {
@@ -532,6 +546,16 @@ void translate_to_word(char * address , int *pointer ) {
   fclose(my_file) ; 
  }
 
+int  lines_of_file(char * address  ) {
+ FILE * my_file = fopen(address , "r") ; 
+ int lines =  0 ;
+ char get_line[MAX_LENGTH] ; 
+  while(fgets(get_line , MAX_LENGTH , my_file) != NULL){
+      lines ++  ;
+  } 
+     fclose(my_file) ;
+     return lines  ; 
+ }
 bool generate_brace(char * address , int dif_line  , int start[2] , int end[2] ){
     translate_dir(address) ; 
     FILE * my_file = fopen(address , "r") ; 
@@ -747,7 +771,17 @@ int arrangr_by_space(char * address , int start , int end ) {
     rename(address2 , address) ; 
  }
 int start_printing(char * string) {
+
     for(int i = 0 ; i < strlen(string) ; i ++){
         if(string[i] != ' ') return i ; 
     }
+ }
+
+void show_cmp1(char * a , char * b  , int m ){ 
+  printf("============ #%d ============\n" , m) ;
+  printf("%s\n%s\n" , a , b ) ; 
+ }
+void show_cmp2(char * a  , int n  ,  int m ) {
+    printf(">>>>>>>>>> #%d - #%d >>>>>>>>>>\n" , n , m) ;
+    printf("%s\n" , a) ;
  }
