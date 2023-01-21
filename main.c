@@ -24,9 +24,10 @@ void translate_to_word(char * address , int *pointer ) ;
 int first_brace_finder(char * string) ; 
 int end_brace_finder(char * string , int* check) ; 
 bool generate_brace(char * address , int def , int  start[2] , int end[2]) ; 
-void correct_first_brace(char * address , int line , int byte ) ; 
-void correct_end_brace(char * address , int*line , int byte , int start ) ; 
-int start_printing(char * string) ; 
+void correct_first_brace(char * address , int line , int byte , int* end  ) ; 
+void correct_end_brace(char * address , int*line , int byte  ) ; 
+int arrangr_by_space(char * string , int start , int end) ; 
+int start_printing(char * string) ;
 
 void createfile(char * address) ; 
 void insertstr(char * address  , char * string  , int line  , int byte ) ; 
@@ -453,14 +454,11 @@ void grep_str(int num_file  , char files[MAX_FILES][MAX_LENGTH]  , char * string
 void closing_pair(char * address ) {
      int dif_line = -1 ; 
      int start[2] , end[2] ;
-     int space = 0 ;
      while(generate_brace(address , dif_line , start , end)) {
-        space = 0 ;
-        if(end[1] == start[1] +1) space = 1 ; 
-          correct_end_brace(address , &end[0] , end[1] , 4)  ;
-         correct_first_brace(address , start[0] , start[1]) ;
-         end[0] += space ; 
-
+          correct_end_brace(address , &end[0] , end[1])  ;
+          correct_first_brace(address , start[0] , start[1] , &end[0]) ;
+          arrangr_by_space(address , start[0] , end[0]) ;
+         
          dif_line = start[0] ; 
      }
  } 
@@ -602,7 +600,7 @@ int end_brace_finder(char * string  , int* check ) {
    }
    return -1 ; 
  }
-void correct_first_brace(char * address , int line , int byte ){
+void correct_first_brace(char * address , int line , int byte , int* end ){
     translate_dir(address) ; 
     char address2[MAX_LENGTH] ={0} ; 
     strcpy(address2 , address) ; 
@@ -635,7 +633,8 @@ void correct_first_brace(char * address , int line , int byte ){
         }
         for(int i = byte+1 ; i < strlen(buffer_line) ; i++){
             if(i == byte+1 && buffer_line[i] == '\n') continue ; 
-            fputc(buffer_line[i] , temp_file) ;
+            fputc(buffer_line[i] , temp_file) ; 
+            if(i == byte+1) (*end)++ ;
         } 
     }
     current_line ++ ; 
@@ -646,7 +645,7 @@ void correct_first_brace(char * address , int line , int byte ){
  rename(address2 , address) ; 
 
  }
-void correct_end_brace(char * address , int*line , int byte , int start ){ 
+void correct_end_brace(char * address , int* line , int byte  ){ 
  translate_dir(address) ; 
     char address2[MAX_LENGTH] ={0} ; 
     strcpy(address2 , address) ; 
@@ -667,14 +666,14 @@ void correct_end_brace(char * address , int*line , int byte , int start ){
             if(before_brace[x] != ' '){
               strcat(before_brace , "\n") ;
               fputs(before_brace , temp_file) ;
-              *line ++ ; 
+               (*line) ++ ; 
               current_line ++ ;
               break ;
            } 
         } 
       }
       char  brace_line[MAX_LENGTH] ={0} ;
-      for(int j = 0 ; j < start -1 ; j ++){
+      for(int j = 0 ; j < 1 ; j ++){
         brace_line[j] = ' ' ;
       }
       strcat(brace_line , "}\n") ; 
@@ -693,6 +692,60 @@ void correct_end_brace(char * address , int*line , int byte , int start ){
 
  }
 
+int arrangr_by_space(char * address , int start , int end ) {
+     translate_dir(address) ; 
+    char address2[MAX_LENGTH] ={0} ; 
+    strcpy(address2 , address) ; 
+    strcat(address2 , "temp") ;
+    FILE * my_file = fopen(address , "r") ; 
+    FILE * temp_file = fopen(address2 , "w") ; 
+     int current_line = 1 ;
+     int handle_size = 4 ;  
+     char buffer_line[MAX_LENGTH] ; 
+     for(int i = 0 ; i < start ; i++){
+       fgets(buffer_line , MAX_LENGTH , my_file) ; 
+       fputs(buffer_line , temp_file) ;
+        current_line ++ ;
+     }
+     for(int i = 0 ;  ; i ++ ){
+        if(buffer_line[i] != ' '){
+             handle_size += i ;
+             break ;
+       }
+     }
+     char * pattern = (char *)calloc((handle_size + 2)  , sizeof(char))  ; 
+     for(int j = 0 ; j < handle_size ; j ++) pattern[j] = ' ' ;
+     int printing_letter = 0 ; 
+     for(int i = 0 ; i < end - start - 1 ; i ++  ){
+        fgets(buffer_line , MAX_LENGTH  , my_file) ;
+        char * newline = (char * )calloc(MAX_LENGTH  ,  sizeof(char)) ; 
+        printing_letter = start_printing(buffer_line) ; 
+        strcpy(newline , pattern) ; 
+        for(int x = 0 ; printing_letter + x < strlen(buffer_line) ; x ++){
+            newline[x + handle_size] = buffer_line[printing_letter + x] ; 
+        }
+        fputs(newline , temp_file) ; 
+        current_line ++ ;  
+        free(newline) ;     
+     }
+     pattern[strlen(pattern) - 4] = '\0' ; 
+
+     fgets(buffer_line , MAX_LENGTH , my_file) ; 
+     char * newline = (char * )malloc(MAX_LENGTH * sizeof(char)) ; 
+       if(handle_size > 4){ 
+        strcpy(newline , pattern) ;
+        strcat(newline , "}\n"); 
+       }else strcpy(newline , "}\n") ; 
+        fputs(newline , temp_file) ;
+        free(newline) ; 
+        while(fgets(buffer_line , MAX_LENGTH , my_file) != NULL){
+            fputs(buffer_line , temp_file) ; 
+        }
+    fclose(temp_file) ;
+    fclose(my_file) ; 
+    remove(address) ; 
+    rename(address2 , address) ; 
+ }
 int start_printing(char * string) {
     for(int i = 0 ; i < strlen(string) ; i ++){
         if(string[i] != ' ') return i ; 
