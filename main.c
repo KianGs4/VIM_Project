@@ -8,12 +8,14 @@
 #include <string.h>
 #include <stdbool.h>
 #include <windows.h>
+#include <dirent.h> 
 
 #define MAX_LENGTH  102
 #define MAX_LINE 200 
 #define Empty_line  "#@!$$$*KIAN_GSVIM$$$!@#"
 #define MAX_FINDCASE 1000 
 #define MAX_FILES 10 
+#define MAX_NUMBER  10000
 int current_command = 0 ;
 
 void create_dir(const char * address) ;
@@ -43,7 +45,7 @@ void replace_str(char * address , char * string1 , char * string2  ) ;
 void grep_str( int num_file  , char files[MAX_FILES][MAX_LENGTH]  , char * string) ; 
 void closing_pair(char * address  ) ; 
 void text_comprator(char * file1 , char * file2) ; 
-
+void dir_tree(char * dirname , int , int ) ; 
 struct option1{
     bool byword ; 
     int at ; 
@@ -58,10 +60,19 @@ struct option2{
 
 
 int main(){ 
-    char  a[100] ; 
-    char  b[100] ; 
-    scanf("%s%s" , a , b) ;
-    text_comprator(a , b) ; 
+    int j ; 
+    // char  a[100] ; 
+    // char  b[100] ; 
+    // scanf("%s%s" , a , b) ;
+    // closing_pair(a) ; 
+opt_find.byword = false ; 
+opt_find.at = 0 ; 
+opt_find.count = false ; 
+opt_find.all = true ; 
+char * address ; 
+char string[100] ; 
+scanf("%s%s" , address , string) ; 
+find_str(address , string) ; 
     return 0 ; 
 }
 
@@ -150,10 +161,7 @@ void cat(char * address) {
         printf("%s" , buffer_line) ;
         if(feof(my_file)) keep_reading = false ;  
     }
-
-
  }
-
 
 void remove_str(char * address , int line ,  int byte , int size , int ward  ) {
     translate_dir(address) ; 
@@ -477,6 +485,45 @@ void text_comprator(char * file1 , char * file2){
     fclose(file_1) ;
     fclose(file_2) ;
  } 
+void directory_tree(char * dirname , int depth , int limit  ) {
+    if(limit == -1) limit = MAX_NUMBER ;
+    if(limit < -1){
+        printf("INVALID DEPTH") ; 
+        return ; 
+    } 
+    chdir(dirname) ;
+    if(depth <= limit){
+    DIR* dir = opendir(".") ;
+    struct dirent* entity  ; 
+    entity = readdir(dir);
+    while (entity != NULL) {
+      int attr = GetFileAttributes(entity->d_name);
+      if (((attr & FILE_ATTRIBUTE_HIDDEN) != FILE_ATTRIBUTE_HIDDEN) && strcmp(entity->d_name, ".") != 0 && strcmp(entity->d_name, "..") != 0 ) {
+          for(int i = 0 ; i < depth - 1  ; i ++ ){
+            printf("    ") ; 
+          }
+          if(depth != 0){
+          for(int i = 0 ; i < 4 ; i++){
+            if(i == 0 ) printf("%c" , 195) ;
+            if(i != 0 ) printf("%c" , 196) ;
+           }
+          }
+           printf("%s\n" , entity->d_name) ;    
+           if (entity->d_type == DT_DIR ) {
+            char path[100] = {0};
+            strcat(path, ".");
+            strcat(path, "/");
+            strcat(path, entity->d_name);
+            directory_tree(path , depth+1 , limit);
+            chdir("..") ; 
+         }
+    }
+      
+    entity = readdir(dir);
+    }
+    closedir(dir);
+  }
+ }
 void translate_string(char * string) {
     if(string[0] == '\"'){
         for(int i = 0 ; i < strlen(string) ; i++) {
@@ -781,6 +828,7 @@ void show_cmp1(char * a , char * b  , int m ){
   printf("============ #%d ============\n" , m) ;
   printf("%s\n%s\n" , a , b ) ; 
  }
+
 void show_cmp2(char * a  , int n  ,  int m ) {
     printf(">>>>>>>>>> #%d - #%d >>>>>>>>>>\n" , n , m) ;
     printf("%s\n" , a) ;
