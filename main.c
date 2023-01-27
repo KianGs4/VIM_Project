@@ -16,7 +16,11 @@
 #define MAX_FINDCASE 1000 
 #define MAX_FILES 10 
 #define MAX_NUMBER  10000
+#define MAX_SIZE 90000
+
 int current_command = 0 ;
+char temp_save[MAX_SIZE] =  {0} ; 
+bool Arman_activation = false ; 
 
 void create_dir(const char * address) ;
 void translate_dir(char * address) ; 
@@ -46,6 +50,7 @@ void grep_str( int num_file  , char files[MAX_FILES][MAX_LENGTH]  , char * strin
 void closing_pair(char * address  ) ; 
 void text_comprator(char * file1 , char * file2) ; 
 void dir_tree(char * dirname , int , int ) ; 
+
 struct option1{
     bool byword ; 
     int at ; 
@@ -61,18 +66,10 @@ struct option2{
 
 int main(){ 
     int j ; 
-    // char  a[100] ; 
-    // char  b[100] ; 
-    // scanf("%s%s" , a , b) ;
-    // closing_pair(a) ; 
-opt_find.byword = false ; 
-opt_find.at = 0 ; 
-opt_find.count = false ; 
-opt_find.all = true ; 
-char * address ; 
-char string[100] ; 
-scanf("%s%s" , address , string) ; 
-find_str(address , string) ; 
+
+char * address = "." ;  
+int depth = -2  ;
+dir_tree(address , 0 , depth) ;
     return 0 ; 
 }
 
@@ -158,7 +155,8 @@ void cat(char * address) {
     bool keep_reading = true ; 
     while(keep_reading == true){
         fgets(buffer_line , MAX_LENGTH , my_file) ; 
-        printf("%s" , buffer_line) ;
+        if(Arman_activation == false )printf("%s" , buffer_line) ;
+        if(Arman_activation == true ) strcat(temp_save  , buffer_line) ; 
         if(feof(my_file)) keep_reading = false ;  
     }
  }
@@ -258,7 +256,7 @@ void remove_str(char * address , int line ,  int byte , int size , int ward  ) {
 
 void copystr(char * address , int line  , int byte , int size , int ward ) {
     translate_dir(address) ; 
-    char readfile[MAX_LENGTH] = {0} ; 
+    char readfile[MAX_SIZE] = {0} ; 
     char buffer_line[MAX_LENGTH] ; 
      FILE * my_file = fopen(address  , "r+") ;
      for(int i = 0 ; i < line - 1 ; i ++ ){
@@ -336,24 +334,56 @@ void find_str( char * address , char * string ){
     }
     //scetion 2 : show 
     if(opt_find.count){
-        printf("%d\n" , cnt ) ; 
+       if(Arman_activation == false ) printf("%d\n" , cnt ) ; 
+       if(Arman_activation == true){
+        char word[15] ; 
+        sprintf(word  , "%d"  , cnt) ;
+        strcat(word , "\n") ; 
+        strcat(temp_save , word) ; 
+       }
     }else{
-        if(cnt == 0) printf("%d\n" , -1) ; else {
+        if(cnt == 0){
+            if(Arman_activation == false ) printf("%d\n" , -1) ;
+            if(Arman_activation == true ){
+                strcat(temp_save , "-1\n") ;
+            }
+        }else {
             if(opt_find.byword){
                 for(int i = 0 ; i < cnt ; i ++){
                     translate_to_word(address  , &findcase[i]) ; 
                 }
             }
+        char word[15] ; 
         if(opt_find.all){
             for(int i = 0 ; i < cnt - 1 ; i ++){
-                printf("%d,  " , findcase[i]) ; 
+                if(Arman_activation == false) printf("%d,  " , findcase[i]) ;
+                if(Arman_activation == true){
+                    sprintf(word , "%d" , findcase[i] ) ; 
+                    strcat(word , ", ") ; 
+                    strcat(temp_save , word) ; 
+                } 
             }
-            printf("%d\n" , findcase[cnt - 1]) ; 
+            if(Arman_activation == false)  printf("%d\n" , findcase[cnt - 1]) ;
+            if(Arman_activation == true){
+                sprintf(word , "%d" , findcase[cnt - 1] ) ;
+                strcat(word  , "\n") ;
+                strcat(temp_save , word) ;
+            } 
         }else{
             if(opt_find.at != 0){
-                printf("%d\n" , findcase[cnt - 1]) ;
+                if(Arman_activation == false) printf("%d\n" , findcase[cnt - 1]) ;
+                if(Arman_activation == true ){
+                    sprintf(word , "%d" , findcase[cnt - 1] ) ; 
+                    strcat(word , "\n") ; 
+                    strcat(temp_save , word) ;
+                }
             }else{
-                printf("%d\n" , findcase[0]) ; 
+                if(Arman_activation == false ) printf("%d\n" , findcase[0]) ;
+                if(Arman_activation == true ){
+                    sprintf(word , "%d" , findcase[0] ) ; 
+                    strcat(word , "\n") ; 
+                    strcat(temp_save , word) ;
+                } 
             }
         } 
     }
@@ -430,11 +460,23 @@ void grep_str(int num_file  , char files[MAX_FILES][MAX_LENGTH]  , char * string
                     current_letter = 0 ;  
                     if(opt_grep.c != true){
                         if(opt_grep.l != true){
-                         printf("%s: %s" , files[i]  , buffer_line ) ;
-                            if(buffer_line[strlen(buffer_line) - 1] != '\n') printf("\n") ; 
+                            if(Arman_activation == false) printf("%s: %s" , files[i]  , buffer_line ) ;
+                            if(Arman_activation == true){
+                                strcat(temp_save , files[i]) ;
+                                strcat(temp_save , ": ") ;
+                                strcat(temp_save , buffer_line) ;
+                            }
+                            if(buffer_line[strlen(buffer_line) - 1] != '\n'){
+                                if(Arman_activation == false) printf("\n") ;
+                                if(Arman_activation == true) strcat(temp_save , "\n") ;  
+                                }
                             }else{
-                            printf("%s\n"  , files[i]) ; 
-                            keep_reading = false ;  
+                                if(Arman_activation == false) printf("%s\n"  , files[i]) ;
+                                if(Arman_activation == true){
+                                    strcat(temp_save , files[i]) ;
+                                    strcat(temp_save , "\n") ; 
+                                } 
+                                keep_reading = false ;  
                         }
                     }
                     break ; 
@@ -445,7 +487,15 @@ void grep_str(int num_file  , char files[MAX_FILES][MAX_LENGTH]  , char * string
         }
         fclose(my_file) ; 
     }
-    if(opt_grep.c) printf("%d\n" , lines_with_word) ;
+    if(opt_grep.c){
+        if(Arman_activation == false) printf("%d\n" , lines_with_word) ;
+        if(Arman_activation == true) {
+            char word[15] ;
+            sprintf(word , "%d" , lines_of_file) ; 
+            strcat(word , "\n") ;
+            strcat(temp_save , word) ; 
+        }
+    }
  } 
 
 void closing_pair(char * address ) {
@@ -485,10 +535,11 @@ void text_comprator(char * file1 , char * file2){
     fclose(file_1) ;
     fclose(file_2) ;
  } 
-void directory_tree(char * dirname , int depth , int limit  ) {
+void dir_tree(char * dirname , int depth , int limit  ) {
     if(limit == -1) limit = MAX_NUMBER ;
     if(limit < -1){
-        printf("INVALID DEPTH") ; 
+        if(Arman_activation == false) printf("INVALID DEPTH") ;
+        if(Arman_activation == true) strcat(temp_save , "INVALID DEPTH") ;  
         return ; 
     } 
     chdir(dirname) ;
@@ -500,21 +551,38 @@ void directory_tree(char * dirname , int depth , int limit  ) {
       int attr = GetFileAttributes(entity->d_name);
       if (((attr & FILE_ATTRIBUTE_HIDDEN) != FILE_ATTRIBUTE_HIDDEN) && strcmp(entity->d_name, ".") != 0 && strcmp(entity->d_name, "..") != 0 ) {
           for(int i = 0 ; i < depth - 1  ; i ++ ){
-            printf("    ") ; 
+            if(Arman_activation == false) printf("    ") ; 
+            if(Arman_activation == true ) strcat(temp_save , "    ") ; 
           }
           if(depth != 0){
           for(int i = 0 ; i < 4 ; i++){
-            if(i == 0 ) printf("%c" , 195) ;
-            if(i != 0 ) printf("%c" , 196) ;
+            if(Arman_activation == false){
+                if(i == 0 ) printf("%c" , 195) ;
+                if(i != 0 ) printf("%c" , 196) ;
+             }else{
+                char word[15] ;
+                if(i == 0 ){
+                    word[0] = 195 ; 
+                    strcat(temp_save , word) ; 
+                } 
+                if(i != 0 ){
+                     word[0] = 196 ; 
+                     strcat(temp_save , word) ;
+                }
+             }
            }
           }
-           printf("%s\n" , entity->d_name) ;    
+           if(Arman_activation == false) printf("%s\n" , entity->d_name) ;
+           if(Arman_activation == true ){
+            strcat(temp_save , entity->d_name) ;
+            strcat(temp_save , "\n") ;
+           }    
            if (entity->d_type == DT_DIR ) {
             char path[100] = {0};
             strcat(path, ".");
             strcat(path, "/");
             strcat(path, entity->d_name);
-            directory_tree(path , depth+1 , limit);
+            dir_tree(path , depth+1 , limit);
             chdir("..") ; 
          }
     }
@@ -825,11 +893,38 @@ int start_printing(char * string) {
  }
 
 void show_cmp1(char * a , char * b  , int m ){ 
-  printf("============ #%d ============\n" , m) ;
-  printf("%s\n%s\n" , a , b ) ; 
+  if(Arman_activation == false){
+    printf("============ #%d ============\n" , m) ;
+    printf("%s\n%s\n" , a , b ) ; 
+  } 
+  if(Arman_activation == true){
+    char word[15] ; 
+    sprintf(word  , "%d" , m) ; 
+    strcat(temp_save , "============ #" ) ; 
+    strcat(temp_save , word) ; 
+    strcat(temp_save ,  " ============\n") ; 
+    strcat(temp_save , a) ; 
+    strcat(temp_save , "\n") ;
+    strcat(temp_save ,b) ;
+    strcat(temp_save , "\n") ; 
+   }
  }
 
 void show_cmp2(char * a  , int n  ,  int m ) {
-    printf(">>>>>>>>>> #%d - #%d >>>>>>>>>>\n" , n , m) ;
-    printf("%s\n" , a) ;
+    if(Arman_activation == false){
+        printf(">>>>>>>>>> #%d - #%d >>>>>>>>>>\n" , n , m) ;
+        printf("%s\n" , a) ;
+    }
+    if(Arman_activation == true){
+        char word[15] ; 
+        sprintf(word  , "%d" , n) ; 
+        strcat(temp_save , ">>>>>>>>>> #" ) ; 
+        strcat(temp_save , word) ; 
+        sprintf(word  , "%d" , m) ; 
+        strcat(temp_save ,  " - #") ; 
+        strcat(temp_save , word) ; 
+        strcat(temp_save , " >>>>>>>>>>\n") ;
+        strcat(temp_save ,a) ;
+        strcat(temp_save , "\n") ; 
+    }
  }
