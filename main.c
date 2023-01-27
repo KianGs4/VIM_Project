@@ -67,9 +67,16 @@ struct option2{
 int main(){ 
     int j ; 
 
-char * address = "." ;  
-int depth = -2  ;
-dir_tree(address , 0 , depth) ;
+char  address[MAX_LENGTH]  ;
+char string[MAX_LENGTH] ;   
+scanf(" %[^\n]s" , address) ;
+scanf(" %[^\n]s" , string) ; 
+int line  , byte ; 
+scanf(" %d%d" , &line  , &byte) ; 
+insertstr(address, string, line, byte) ; 
+//cat(address) ; 
+//translate_string(string) ; 
+//printf("%s" , string) ; 
     return 0 ; 
 }
 
@@ -110,7 +117,7 @@ void insertstr(char * address  , char * string  , int line  , int byte ) {
             }
         if(current_line == line){
             for(int i = 0 ; i < byte ; i ++ ) newline[i] = ' ' ; 
-            strcat(newline , string ) ; 
+            strcat(newline , string ) ;
             fputs(newline , temp_file) ; 
             keep_reading = false ;
         }
@@ -599,6 +606,26 @@ void translate_string(char * string) {
         }
         string[strlen(string) - 1] = string[strlen(string)] ; 
     }
+
+    for(int i = 0 ; i < strlen(string) ; i ++){
+        if(string[i] == '\\'){
+            if(string[i+1] == 'n'){
+                string[i] = '\n' ; 
+                int j = i+1  ;
+                for(j ; j < strlen(string) ; j ++ ){
+                    string[j] = string[j + 1] ; 
+                } 
+            }else{
+                if(string[i+1] == '\\' , string[i+2] == 'n' ){
+                    int j = i+1  ;
+                    for(j ; j < strlen(string) ; j ++ ){
+                    string[j] = string[j + 1] ; 
+                    }     
+                }
+                i++  ; 
+            }
+        }
+    }
  }
 void create_dir(const char * address) {
 
@@ -629,7 +656,7 @@ void translate_dir(char * address) {
     for(int i = 0 ; i < strlen(address)  ; i++ ){
     address[i] = address[i+k] ; 
    }
-   if(k == 2) address[strlen(address) - 1] = address[strlen(address)] ; 
+    if(k != 0)address[strlen(address) - 1] = address[strlen(address)] ; 
 
  } 
 
