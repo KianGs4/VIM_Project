@@ -41,7 +41,7 @@ void createfile(char * address) ;
 void insertstr(char * address  , char * string  , int line  , int byte ) ; 
 void cat(char * address) ; 
 void remove_str(char * address , int line ,  int byte , int size , int ward) ; 
-void copystr(char * address , int line  , int byte , int size , int ward ) ; 
+void copy_str(char * address , int line  , int byte , int size , int ward ) ; 
 void cutstr(char * address , int line  , int byte , int size , int ward) ; 
 void paste_str(char * address , int line , int byte) ; 
 void find_str( char * address , char * string)  ;
@@ -70,13 +70,16 @@ int main(){
 char  address[MAX_LENGTH]  ;
 char string[MAX_LENGTH] ;   
 scanf(" %[^\n]s" , address) ;
-scanf(" %[^\n]s" , string) ; 
+//scanf(" %[^\n]s" , string) ; 
 int line  , byte ; 
 scanf(" %d%d" , &line  , &byte) ; 
-insertstr(address, string, line, byte) ; 
+//insertstr(address, string, line, byte) ; 
+int size , ward ; 
+scanf(" %d%d" , &size  , &ward) ; 
 //cat(address) ; 
 //translate_string(string) ; 
 //printf("%s" , string) ; 
+copy_str(address , line , byte  , size , ward) ; 
     return 0 ; 
 }
 
@@ -261,22 +264,32 @@ void remove_str(char * address , int line ,  int byte , int size , int ward  ) {
  }
 
 
-void copystr(char * address , int line  , int byte , int size , int ward ) {
+void copy_str(char * address , int line  , int byte , int size , int ward ) {
     translate_dir(address) ; 
     char readfile[MAX_SIZE] = {0} ; 
     char buffer_line[MAX_LENGTH] ; 
-     FILE * my_file = fopen(address  , "r+") ;
+    int first_p_line[line] ; 
+     FILE * my_file = fopen(address  , "r") ;
      for(int i = 0 ; i < line - 1 ; i ++ ){
+        first_p_line[i] = ftell(my_file) ;
         fgets(buffer_line , MAX_LENGTH  , my_file) ; 
      }
      int of_the_line = ftell(my_file) ; 
-
+     first_p_line[line - 1] = of_the_line ; 
+     of_the_line += byte ; 
      if(ward == -1){
         of_the_line -= size ; 
+        int base = line - 1 ;
+        for(int i = line -1 ; ;i -- ){
+            if(of_the_line >= first_p_line[i]){
+                of_the_line -= (base - i) ; 
+                base = i ; 
+                if(of_the_line >= first_p_line[i]) break ; 
+            }
+        }
      }
-
-     fseek(my_file , of_the_line +  byte-1  , SEEK_SET)  ;
-     fread( readfile , 1 , size  , my_file) ; 
+     fseek(my_file , of_the_line   , SEEK_SET)  ;
+     fread( readfile , sizeof(char) , size  , my_file) ; 
      const size_t len = strlen(readfile) + 1;
      HGLOBAL hMem =  GlobalAlloc(GMEM_MOVEABLE, len);
      memcpy(GlobalLock(hMem), readfile, len);
@@ -290,10 +303,10 @@ void copystr(char * address , int line  , int byte , int size , int ward ) {
  }
 
 void cutstr(char * address , int line , int byte , int size ,  int ward){
-    copystr(address , line , byte , size , ward) ; 
+    copy_str(address , line , byte , size , ward) ; 
     remove_str(address , line , byte , size , ward) ; 
  }
-void paste_str(char * address , int line , int byte ){
+void paste_str(char * address , int line , int byte ){  
     char string[MAX_LENGTH] ; 
     HANDLE h;
     OpenClipboard(NULL);
