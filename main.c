@@ -36,6 +36,7 @@ int arrangr_by_space(char * string , int start , int end) ;
 int start_printing(char * string) ;
 void show_cmp1(char * a , char * b  , int m ) ; 
 void show_cmp2(char * a  , int n ,  int m ) ;
+void show_cmp3(char * a , char * b , int m , int p) ;
 
 void createfile(char * address) ; 
 void insert_str(char * address  , char * string  , int line  , int byte ) ; 
@@ -51,6 +52,7 @@ void closing_pair(char * address  ) ;
 void text_comprator(char * file1 , char * file2) ; 
 void dir_tree(char * dirname , int , int ) ; 
 int line_counter(char * address) ;
+int one_differ(char * string1 , char * string2) ; 
 
 struct option1{
     bool byword ; 
@@ -66,29 +68,22 @@ struct option2{
 
 
 int main(){ 
-    int j ; 
+// char string[MAX_LENGTH] = "salam khoobi ? chetor ha ?  " ; 
+// char string2[MAX_LENGTH] = "salam na ? chetor ha ? b  " ; 
+//  printf("%d" , one_differ(string  , string2)) ; 
+// char  address[MAX_FILES][MAX_LENGTH]  ;
+// char string[MAX_LENGTH] ;   
 
-char  address[MAX_LENGTH]  ;
-char string[MAX_LENGTH] ;   
-scanf(" %[^\n]s" , address) ;
-scanf(" %[^\n]s" , string) ;
-char * string2 =  "[NEW TEXT]" ; 
-opt_find.byword = false ; 
-opt_find.at = 0 ;
-opt_find.count = false ; 
-opt_find.all = true ; 
-//find_str(address , string) ; 
-//int line , byte  ;
- //scanf(" %d%d" , &line  , &byte) ; 
-// //insert_str(address, string, line, byte) ; 
-// int size , ward ; 
-// scanf(" %d%d" , &size  , &ward) ; 
-// //cat(address) ; 
-// //translate_string(string) ; 
-// //printf("%s" , string) ; 
-// paste_str(address , line , byte) ; 
-replace_str(address , string , string2) ;
-//insert_str(address , string2 , line , byte ) ; 
+// scanf(" %[^\n]s" , address[0]) ;
+// scanf(" %[^\n]s" , string) ;
+// //char * string2 =  "[NEW TEXT]" ; 
+// opt_grep.l = false ; 
+// opt_grep.c = true ; 
+// grep_str(1 , address , string) ; 
+char address1[MAX_LENGTH] ; 
+char address2[MAX_LENGTH] ; 
+scanf(" %s%s"  , address1  , address2 ) ; 
+text_comprator(address1 , address2) ;
     return 0 ; 
 }
 
@@ -562,10 +557,12 @@ void text_comprator(char * file1 , char * file2){
         fgets(buffer_1 , MAX_LENGTH , file_1) ; 
         fgets(buffer_2 , MAX_LENGTH , file_2) ; 
         if(strcmp(buffer_1 , buffer_2)){
+            int point_to_word =  one_differ(buffer_1 , buffer_2) ;
             if(buffer_1[strlen(buffer_1) -1 ] == '\n' ) buffer_1[strlen(buffer_1) - 1] = buffer_1[strlen(buffer_1)] ; 
             if(buffer_2[strlen(buffer_2) -1 ] == '\n' ) buffer_2[strlen(buffer_2) - 1] = buffer_2[strlen(buffer_2)] ;
-            show_cmp1(buffer_1 , buffer_2 , i+1) ;  
-        }
+            if(point_to_word == -1) show_cmp1(buffer_1 , buffer_2 , i+1) ;  else
+               show_cmp3(buffer_1  , buffer_2 , i+1 , point_to_word) ; 
+        }    
     }
     for(int i = min ; i < max  ; i++ ){
         if(len1 == max)  fgets(buffer_1 , MAX_LENGTH , file_1) ; else fgets(buffer_1 , MAX_LENGTH , file_2) ; 
@@ -992,8 +989,58 @@ void show_cmp2(char * a  , int n  ,  int m ) {
         strcat(temp_save , "\n") ; 
     }
  }
+void show_cmp3(char * a , char * b , int m , int differ){
+    char line_1[MAX_LENGTH] = {0} ; 
+    char line_2[MAX_LENGTH] = {0} ;
+    char tok[2] = " " ;
+    char * temp ;
+    temp =  strtok(a , tok) ;
+    int counter = 0 ; 
+    while(temp != NULL){
+        counter ++ ; 
+        if(counter == differ){
+            strcat(line_1 , ">>") ;
+            strcat(line_1 , temp) ;
+            strcat(line_1 , "<< ") ;
+        }else{
+            strcat(line_1 , temp) ; 
+            strcat(line_1 , " ") ;
+        }
+        temp = strtok(NULL , tok) ;
+    }
+    temp = strtok(b , tok) ;
+    counter = 0 ; 
+    while(temp != NULL){
+        counter ++ ; 
+        if(counter == differ){
+            strcat(line_2 , ">>") ;
+            strcat(line_2 , temp) ;
+            strcat(line_2 , "<< ") ;
+        }else{
+            strcat(line_2 , temp) ; 
+            strcat(line_2 , " ") ;
+        }
+    temp = strtok(NULL , tok) ;
+    }
+    if(Arman_activation == false){
+        printf("============ #%d ============\n" , m) ;
+        printf("%s\n%s\n"  , line_1  , line_2) ;   
+    } 
+    if(Arman_activation == true){
+        char word[15] ; 
+        sprintf(word  , "%d" , m) ; 
+        strcat(temp_save , "============ #" ) ; 
+        strcat(temp_save , word) ; 
+        strcat(temp_save ,  " ============\n") ; 
+        strcat(temp_save , line_1) ; 
+        strcat(temp_save , "\n") ;
+        strcat(temp_save ,line_2) ;
+        strcat(temp_save , "\n") ; 
+   }
+ } 
 
 int line_counter(char * address) {
+
     translate_dir(address) ; 
     FILE * my_file = fopen(address , "r") ; 
     int l = 0 ; 
@@ -1003,4 +1050,43 @@ int line_counter(char * address) {
     }
     fclose(my_file) ; 
     return l ; 
+ }
+
+int one_differ(char * string1 , char * string2) {
+    char S_use_1[MAX_LENGTH] ; 
+    char S_use_2[MAX_LENGTH] ;
+    strcpy(S_use_1 , string1) ; 
+    strcpy(S_use_2 , string2) ;
+    int n = 0 ;
+    int pnt = 0 ; 
+    int size_1 = 0 ; 
+    int size_2 = 0 ;
+    char tok[2] = " " ; 
+    char * use_1 ; 
+    char * use_2 ;
+    char  words_1[MAX_LINE][MAX_LENGTH] ;
+    char  words_2[MAX_LINE][MAX_LENGTH] ; 
+    use_1 = strtok(S_use_1 , tok) ; 
+    while(use_1 != NULL) {
+        strcpy(words_1[size_1] , use_1) ; 
+        size_1 ++ ; 
+        use_1 = strtok(NULL  , tok) ; 
+    }
+
+    use_2 = strtok(S_use_2 , tok) ; 
+    while(use_2 != NULL) {
+        strcpy(words_2[size_2] , use_2) ; 
+        size_2 ++ ; 
+        use_2 = strtok(NULL  , tok) ; 
+    }
+
+    if(size_1 != size_2 ) return -1 ; 
+    for(int i = 0 ; i < size_1 ; i ++){
+        if(strcmp(words_1[i] , words_2[i])) {
+            n ++ ; 
+            pnt = i+1 ; 
+        }
+        if(n >= 2) return -1 ;
+    }
+    return pnt ; 
  }
