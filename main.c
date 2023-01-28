@@ -50,6 +50,7 @@ void grep_str( int num_file  , char files[MAX_FILES][MAX_LENGTH]  , char * strin
 void closing_pair(char * address  ) ; 
 void text_comprator(char * file1 , char * file2) ; 
 void dir_tree(char * dirname , int , int ) ; 
+int line_counter(char * address) ;
 
 struct option1{
     bool byword ; 
@@ -70,13 +71,15 @@ int main(){
 char  address[MAX_LENGTH]  ;
 char string[MAX_LENGTH] ;   
 scanf(" %[^\n]s" , address) ;
-scanf(" %[^\n]s" , string) ; 
+scanf(" %[^\n]s" , string) ;
+char * string2 =  "[NEW TEXT]" ; 
 opt_find.byword = false ; 
 opt_find.at = 0 ;
-opt_find.count = true ; 
-opt_find.all = false ; 
-find_str(address , string) ; 
-// scanf(" %d%d" , &line  , &byte) ; 
+opt_find.count = false ; 
+opt_find.all = true ; 
+//find_str(address , string) ; 
+//int line , byte  ;
+ //scanf(" %d%d" , &line  , &byte) ; 
 // //insert_str(address, string, line, byte) ; 
 // int size , ward ; 
 // scanf(" %d%d" , &size  , &ward) ; 
@@ -84,6 +87,8 @@ find_str(address , string) ;
 // //translate_string(string) ; 
 // //printf("%s" , string) ; 
 // paste_str(address , line , byte) ; 
+replace_str(address , string , string2) ;
+//insert_str(address , string2 , line , byte ) ; 
     return 0 ; 
 }
 
@@ -111,15 +116,13 @@ void insert_str(char * address  , char * string  , int line  , int byte ) {
  char buffer_line[MAX_LENGTH] ; 
  int current_line = 1 ;
  bool ISend = true ;   
- bool keep_reading = true ; 
+ bool keep_reading = true ;
+ int file_size = line_counter(address) ;
+ printf("%d" , file_size) ;   
  while(keep_reading == true){
-        fgets(buffer_line , MAX_LENGTH , my_file) ;    
-        if(feof(my_file)){
+        fgets(buffer_line , MAX_LENGTH , my_file) ;
+        if(current_line > file_size){
         if(current_line < line ) {
-            if(ISend && strcmp(buffer_line , "\n")!= 0){
-                fputs(buffer_line , temp_file)  ; 
-                ISend = false ; 
-            }
             fputs("\n" , temp_file ) ;
             }
         if(current_line == line){
@@ -130,7 +133,6 @@ void insert_str(char * address  , char * string  , int line  , int byte ) {
         }
         if(current_line > line ){
             keep_reading = false ; 
-            if(strcmp(buffer_line , "\n") != 0 )fputs(buffer_line , temp_file) ; 
         } 
     }else{
         if(current_line == line){
@@ -139,7 +141,7 @@ void insert_str(char * address  , char * string  , int line  , int byte ) {
             strcpy(newline , buffer_line) ; 
             for(int i = 0 ; i < byte - strlen(buffer_line)   ; i ++ ) strcat(newline , " ")  ; 
             strcat(newline , string) ; 
-            strcat(newline , "\n") ; 
+            if(file_size != current_line) strcat(newline , "\n") ; 
             fputs(newline , temp_file) ; 
            }else{
             memcpy(newline  , buffer_line , byte) ; 
@@ -151,6 +153,9 @@ void insert_str(char * address  , char * string  , int line  , int byte ) {
             fputs(newline , temp_file) ; 
            }
         }else{
+            if(current_line == file_size && line > file_size){
+                if(buffer_line[strlen(buffer_line) - 1] != '\n') strcat(buffer_line , "\n") ; 
+            }
             fputs(buffer_line , temp_file) ; 
         }
     }
@@ -190,7 +195,6 @@ void remove_str(char * address , int line ,  int byte , int size , int ward  ) {
      *(buffer_line + k) = calloc(MAX_LENGTH  ,  sizeof(char)) ; 
      fgets(buffer_line[k] , MAX_LENGTH , my_file) ; 
      if(feof(my_file)) keep_reading = false ; 
-     printf("%s" , buffer_line[k]) ; 
      k ++ ; 
     }
 
@@ -419,9 +423,10 @@ void find_str( char * address , char * string ){
  }  
 
 void replace_str(char * address , char * string1 , char * string2  ){
-     int findcase[MAX_FINDCASE][2]  ;
+    int findcase[MAX_FINDCASE][2]  ;
     int cnt = 0 ; 
     int size = strlen(string1) ;
+    int size_add = strlen(string2) - size ;  
     translate_dir(address) ; 
     translate_string(string1); 
     FILE * my_file = fopen(address , "r") ; 
@@ -437,7 +442,13 @@ void replace_str(char * address , char * string1 , char * string2  ){
         line ++ ;
         int current_letter = 0  ; 
         for(int i = 0 ; i < strlen(buffer_line) ; i ++ ){
-           if(current_letter == size ){
+            if(string1[current_letter] != buffer_line[i]){
+            pointer += current_letter+1 ;
+            current_letter = 0  ;
+            }else{
+            current_letter ++ ; 
+            }
+            if(current_letter == size ){
             findcase[cnt][0] = line  ;
             findcase[cnt][1] = pointer - byte ;  
             cnt ++ ; 
@@ -448,26 +459,28 @@ void replace_str(char * address , char * string1 , char * string2  ){
                  break ;                
              } 
            }
-           if(string1[current_letter] != buffer_line[i]){
-            pointer += current_letter+1 ;
-            current_letter = 0  ;
-           }else{
-            current_letter ++ ; 
-           }
         }
         if(feof(my_file)) break ;  
     }
     fclose(my_file) ; 
     //section 2 : replace
-    if(opt_find.at == 0 ){
-    for(int i = 0 ; i < cnt ; i ++  ){
-        printf("%d : %d \t %d\n" , findcase[i][0] , findcase[i][1] , cnt) ; 
-        remove_str(address , findcase[i][0] , findcase[i][1]  , strlen(string1) , 1  ) ; 
-        insert_str(address ,  string2  ,  findcase[i][0] , findcase[i][1]) ; 
-     }
-    }else{
-          remove_str(address , findcase[cnt - 1][0] , findcase[cnt - 1 ][1]  , strlen(string1) , 1  ) ; 
-        insert_str(address ,  string2  ,  findcase[cnt - 1 ][0] , findcase[cnt - 1 ][1]) ; 
+    if(cnt == 0){
+        printf("The string was not found in the text\n") ; 
+    } else {
+        if(opt_find.at == 0 ){
+            int in_same_line = 0 ; 
+            for(int i = 0 ; i < cnt ; i ++  ){
+                if(i != 0 ){
+                    if(findcase[i][0] == findcase[i-1][0]) in_same_line ++ ; else 
+                    in_same_line = 0 ; 
+                }
+                remove_str(address , findcase[i][0] , findcase[i][1] + size_add * in_same_line   , strlen(string1) , 1  ) ; 
+                insert_str(address ,  string2  ,  findcase[i][0]  , findcase[i][1] + size_add * in_same_line) ; 
+            }
+        }else{
+            remove_str(address , findcase[cnt - 1][0] , findcase[cnt - 1 ][1]  , strlen(string1) , 1  ) ; 
+            insert_str(address ,  string2  ,  findcase[cnt - 1 ][0] , findcase[cnt - 1 ][1]) ; 
+        }
     }
 
  } 
@@ -961,6 +974,7 @@ void show_cmp1(char * a , char * b  , int m ){
  }
 
 void show_cmp2(char * a  , int n  ,  int m ) {
+
     if(Arman_activation == false){
         printf(">>>>>>>>>> #%d - #%d >>>>>>>>>>\n" , n , m) ;
         printf("%s\n" , a) ;
@@ -977,4 +991,16 @@ void show_cmp2(char * a  , int n  ,  int m ) {
         strcat(temp_save ,a) ;
         strcat(temp_save , "\n") ; 
     }
+ }
+
+int line_counter(char * address) {
+    translate_dir(address) ; 
+    FILE * my_file = fopen(address , "r") ; 
+    int l = 0 ; 
+    char C_line[MAX_LENGTH] ; 
+    while(fgets(C_line  , MAX_LENGTH , my_file) != NULL){
+        l ++ ; 
+    }
+    fclose(my_file) ; 
+    return l ; 
  }
