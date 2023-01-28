@@ -38,11 +38,11 @@ void show_cmp1(char * a , char * b  , int m ) ;
 void show_cmp2(char * a  , int n ,  int m ) ;
 
 void createfile(char * address) ; 
-void insertstr(char * address  , char * string  , int line  , int byte ) ; 
+void insert_str(char * address  , char * string  , int line  , int byte ) ; 
 void cat(char * address) ; 
 void remove_str(char * address , int line ,  int byte , int size , int ward) ; 
 void copy_str(char * address , int line  , int byte , int size , int ward ) ; 
-void cutstr(char * address , int line  , int byte , int size , int ward) ; 
+void cut_str(char * address , int line  , int byte , int size , int ward) ; 
 void paste_str(char * address , int line , int byte) ; 
 void find_str( char * address , char * string)  ;
 void replace_str(char * address , char * string1 , char * string2  ) ; 
@@ -70,16 +70,20 @@ int main(){
 char  address[MAX_LENGTH]  ;
 char string[MAX_LENGTH] ;   
 scanf(" %[^\n]s" , address) ;
-//scanf(" %[^\n]s" , string) ; 
-int line  , byte ; 
-scanf(" %d%d" , &line  , &byte) ; 
-//insertstr(address, string, line, byte) ; 
-int size , ward ; 
-scanf(" %d%d" , &size  , &ward) ; 
-//cat(address) ; 
-//translate_string(string) ; 
-//printf("%s" , string) ; 
-copy_str(address , line , byte  , size , ward) ; 
+scanf(" %[^\n]s" , string) ; 
+opt_find.byword = false ; 
+opt_find.at = 0 ;
+opt_find.count = true ; 
+opt_find.all = false ; 
+find_str(address , string) ; 
+// scanf(" %d%d" , &line  , &byte) ; 
+// //insert_str(address, string, line, byte) ; 
+// int size , ward ; 
+// scanf(" %d%d" , &size  , &ward) ; 
+// //cat(address) ; 
+// //translate_string(string) ; 
+// //printf("%s" , string) ; 
+// paste_str(address , line , byte) ; 
     return 0 ; 
 }
 
@@ -95,7 +99,7 @@ void createfile(char * address){
     } 
  }
 
-void insertstr(char * address  , char * string  , int line  , int byte ) {
+void insert_str(char * address  , char * string  , int line  , int byte ) {
  translate_dir(address) ; 
  char address2[MAX_LENGTH] ; 
  strcpy(address2 , address) ; 
@@ -302,7 +306,7 @@ void copy_str(char * address , int line  , int byte , int size , int ward ) {
 
  }
 
-void cutstr(char * address , int line , int byte , int size ,  int ward){
+void cut_str(char * address , int line , int byte , int size ,  int ward){
     copy_str(address , line , byte , size , ward) ; 
     remove_str(address , line , byte , size , ward) ; 
  }
@@ -313,7 +317,7 @@ void paste_str(char * address , int line , int byte ){
     h = GetClipboardData(CF_TEXT);
     strcpy(string , (char *)h) ; 
     CloseClipboard();
-   insertstr(address , string , line , byte ) ; 
+   insert_str(address , string , line , byte ) ; 
  }
 
 void find_str( char * address , char * string ){
@@ -333,21 +337,23 @@ void find_str( char * address , char * string ){
         line ++ ; 
         int current_letter = 0  ; 
         for(int i = 0 ; i < strlen(buffer_line) ; i ++ ){
-           if(current_letter == size ){
-            if(opt_find.count != true ) findcase[cnt] = pointer ; 
-            cnt ++ ; 
-            current_letter = 0 ;
-            pointer += size ;  
-            if( (opt_find.all != true && opt_find.at == 0 ) || opt_find.at == cnt ){
-                keep_reading  = false ; 
-                 break ;                
-             } 
-           }
+           
            if(string[current_letter] != buffer_line[i]){
             pointer += current_letter+1 ;
             current_letter = 0  ;
            }else{
             current_letter ++ ; 
+           }
+
+           if(current_letter == size ){
+            if(opt_find.count != true ) findcase[cnt] = pointer ; 
+            cnt ++ ; 
+            current_letter = 0 ;
+            pointer += size ;  
+            if( (opt_find.all != true && opt_find.at == 0 && opt_find.count == false  ) || opt_find.at == cnt ){
+                keep_reading  = false ; 
+                 break ;                
+             } 
            }
         }
         if(feof(my_file)) break ;  
@@ -367,6 +373,7 @@ void find_str( char * address , char * string ){
             if(Arman_activation == true ){
                 strcat(temp_save , "-1\n") ;
             }
+            printf("The string was not found in the text\n") ; 
         }else {
             if(opt_find.byword){
                 for(int i = 0 ; i < cnt ; i ++){
@@ -376,7 +383,7 @@ void find_str( char * address , char * string ){
         char word[15] ; 
         if(opt_find.all){
             for(int i = 0 ; i < cnt - 1 ; i ++){
-                if(Arman_activation == false) printf("%d,  " , findcase[i]) ;
+                if(Arman_activation == false) printf("%d, " , findcase[i]) ;
                 if(Arman_activation == true){
                     sprintf(word , "%d" , findcase[i] ) ; 
                     strcat(word , ", ") ; 
@@ -456,11 +463,11 @@ void replace_str(char * address , char * string1 , char * string2  ){
     for(int i = 0 ; i < cnt ; i ++  ){
         printf("%d : %d \t %d\n" , findcase[i][0] , findcase[i][1] , cnt) ; 
         remove_str(address , findcase[i][0] , findcase[i][1]  , strlen(string1) , 1  ) ; 
-        insertstr(address ,  string2  ,  findcase[i][0] , findcase[i][1]) ; 
+        insert_str(address ,  string2  ,  findcase[i][0] , findcase[i][1]) ; 
      }
     }else{
           remove_str(address , findcase[cnt - 1][0] , findcase[cnt - 1 ][1]  , strlen(string1) , 1  ) ; 
-        insertstr(address ,  string2  ,  findcase[cnt - 1 ][0] , findcase[cnt - 1 ][1]) ; 
+        insert_str(address ,  string2  ,  findcase[cnt - 1 ][0] , findcase[cnt - 1 ][1]) ; 
     }
 
  } 
@@ -674,28 +681,31 @@ void translate_dir(char * address) {
  } 
 
 void translate_to_word(char * address , int *pointer ) {
-
     translate_dir(address) ; 
     FILE * my_file = fopen(address , "r") ;
     char buffer_word[MAX_LENGTH] ;  
     char buffer_line[MAX_LENGTH];
     bool keep_reading = true ; 
     int words = 1  ; 
+    int number_of_lines = 0 ; 
     while(keep_reading){
-        int point = ftell(my_file) ;
+        int point = ftell(my_file) - number_of_lines ;
         fgets(buffer_line , MAX_LENGTH , my_file)  ;
+        number_of_lines ++ ; 
         char * w = strtok(buffer_line , " ") ;
+        if(strcmp(w , "\n") == 0 ) continue ; 
         while(1){
             if(point >= *pointer){
                 if(point == *pointer) *pointer = words ; else
-               *pointer = words-1 ; 
+                *pointer = words-1 ; 
                 keep_reading = false ; 
-            break ; 
+                break ; 
            }
          words ++ ; 
-         point += strlen(w) + 1 ;
-         w = strtok(NULL, " ") ; 
-         if(w == NULL) break ; 
+         if(w[strlen(w) - 1] != '\n') point += strlen(w) + 1 ; else 
+         point += strlen(w) ; 
+         w = strtok(NULL, " ") ;
+         if(w == NULL || strcmp(w , "\n") == 0 || strcmp(w , " ") == 0) break ; 
         }
     }
   fclose(my_file) ; 
