@@ -17,6 +17,7 @@
 #define MAX_FILES 10 
 #define MAX_NUMBER  10000
 #define MAX_SIZE 90000
+#define MAX_WORDS 50
 
 int current_command = 0 ;
 char temp_save[MAX_SIZE] =  {0} ; 
@@ -37,6 +38,7 @@ int start_printing(char * string) ;
 void show_cmp1(char * a , char * b  , int m ) ; 
 void show_cmp2(char * a  , int n ,  int m ) ;
 void show_cmp3(char * a , char * b , int m , int p) ;
+void wildcard_fixer(char * a ); 
 
 void createfile(char * address) ; 
 void insert_str(char * address  , char * string  , int line  , int byte ) ; 
@@ -66,24 +68,22 @@ struct option2{
     bool c ; 
 }opt_grep ; 
 
+struct mode{
+    bool mode  ; 
+    bool first_multichar  ; 
+    bool end_multichar ;
+}Wildcard ; 
 
 int main(){ 
-// char string[MAX_LENGTH] = "salam khoobi ? chetor ha ?  " ; 
-// char string2[MAX_LENGTH] = "salam na ? chetor ha ? b  " ; 
-//  printf("%d" , one_differ(string  , string2)) ; 
-// char  address[MAX_FILES][MAX_LENGTH]  ;
-// char string[MAX_LENGTH] ;   
-
-// scanf(" %[^\n]s" , address[0]) ;
-// scanf(" %[^\n]s" , string) ;
-// //char * string2 =  "[NEW TEXT]" ; 
-// opt_grep.l = false ; 
-// opt_grep.c = true ; 
-// grep_str(1 , address , string) ; 
-char address1[MAX_LENGTH] ; 
-char address2[MAX_LENGTH] ; 
-scanf(" %s%s"  , address1  , address2 ) ; 
-text_comprator(address1 , address2) ;
+ Wildcard.mode = true  ; 
+ opt_find.count = false ;
+ opt_find.at = 0 ;
+ opt_find.all = true ; 
+ opt_find.byword = false ; 
+ char  address[MAX_LENGTH] = {0} ; 
+ char  string[MAX_LENGTH] ={0}  ;
+ scanf("%s%s" , address , string) ; 
+  find_str(address  , string) ; 
     return 0 ; 
 }
 
@@ -328,34 +328,93 @@ void find_str( char * address , char * string ){
     FILE * my_file = fopen(address , "r") ; 
     char buffer_line[MAX_LENGTH] ;
     bool keep_reading = true  ;  
-    int line = 0 ; 
-    //section  1 : find  
-    while(keep_reading){
-        int pointer = ftell(my_file) - line  ;  
-        fgets(buffer_line  , MAX_LENGTH , my_file) ; 
-        line ++ ; 
-        int current_letter = 0  ; 
-        for(int i = 0 ; i < strlen(buffer_line) ; i ++ ){
-           
-           if(string[current_letter] != buffer_line[i]){
-            pointer += current_letter+1 ;
-            current_letter = 0  ;
-           }else{
-            current_letter ++ ; 
-           }
+    int line = 0 ;
+    //section  1 : find 
+    if(Wildcard.mode == false){ 
+        while(keep_reading){
+            int pointer = ftell(my_file) - line  ;  
+            fgets(buffer_line  , MAX_LENGTH , my_file) ; 
+            line ++ ; 
+            int current_letter = 0  ; 
+            for(int i = 0 ; i < strlen(buffer_line) ; i ++ ){
+                if(string[current_letter] != buffer_line[i]){
+                pointer += current_letter+1 ;
+                current_letter = 0  ;
+                }else{
+                current_letter ++ ; 
+                }
 
-           if(current_letter == size ){
-            if(opt_find.count != true ) findcase[cnt] = pointer ; 
-            cnt ++ ; 
-            current_letter = 0 ;
-            pointer += size ;  
-            if( (opt_find.all != true && opt_find.at == 0 && opt_find.count == false  ) || opt_find.at == cnt ){
+             if(current_letter == size ){
+                if(opt_find.count != true ) findcase[cnt] = pointer ; 
+                cnt ++ ; 
+                current_letter = 0 ;
+                pointer += size ;  
+                if( (opt_find.all != true && opt_find.at == 0 && opt_find.count == false  ) || opt_find.at == cnt ){
                 keep_reading  = false ; 
                  break ;                
-             } 
-           }
+                  } 
+                }
+            }
+            if(feof(my_file)) break ;  
         }
-        if(feof(my_file)) break ;  
+    }else{
+        wildcard_fixer(string) ; 
+        char string_separate[MAX_WORDS][MAX_LENGTH] ; 
+        int number_of_words  = 1 ; 
+        int tok = 0 ;
+        size = strlen(string) ;
+        for(int i = 0 ; i < size ; i++){
+            if(string[i] == '*'){
+                string_separate[number_of_words - 1][i - tok] = '\0' ;
+                tok =  0; 
+                number_of_words ++ ; 
+                continue ; 
+            }
+            if(string[i] == '\\' && string[i+1]== '*') ++i ;
+            string_separate[number_of_words - 1][tok] = string[i] ;
+            if(i == size-1) string_separate[number_of_words - 1][i+1 - tok] = '\0' ; 
+            tok ++ ; 
+        }
+        while(keep_reading){
+            int pointer = ftell(my_file) - line  ;  
+            int pointer_temp = pointer ; 
+            fgets(buffer_line  , MAX_LENGTH , my_file) ; 
+            line ++ ; 
+            int current_letter = 0  ;
+            int current_word = 0 ;  
+            for(int i = 0 ; i < strlen(buffer_line) ; i ++ ){
+                if( string_separate[current_word][current_letter] != buffer_line[i]){
+                    if(buffer_line[i] == ' ') current_word = 0 ; 
+                    if(current_word == 0) pointer = pointer_temp + i+1 ;
+                    current_letter = 0  ;
+                }else{
+                current_letter ++ ; 
+                }
+
+                if(current_letter == strlen(string_separate[current_word])){
+                     current_word ++ ;
+                     current_letter = 0 ;
+                }
+                if(current_word == number_of_words ){
+                    if(Wildcard.first_multichar){
+                        while(1){
+                            if(buffer_line[pointer - pointer_temp - 1] != ' ') pointer -- ; else
+                             break ; 
+                        }
+                    }
+                    if(opt_find.count != true ) findcase[cnt] = pointer ; 
+                    cnt ++ ; 
+                    current_letter = 0 ;
+                    current_word = 0 ;
+                    pointer ++ ;
+                    if( (opt_find.all != true && opt_find.at == 0 && opt_find.count == false  ) || opt_find.at == cnt ){
+                    keep_reading  = false ; 
+                     break ;                
+                  } 
+                }
+            }
+            if(feof(my_file)) break ;  
+        }
     }
     //scetion 2 : show 
     if(opt_find.count){
@@ -414,7 +473,7 @@ void find_str( char * address , char * string ){
         } 
     }
   }
-     fclose(my_file) ; 
+  fclose(my_file) ;
  }  
 
 void replace_str(char * address , char * string1 , char * string2  ){
@@ -1089,4 +1148,24 @@ int one_differ(char * string1 , char * string2) {
         if(n >= 2) return -1 ;
     }
     return pnt ; 
+ }
+
+void wildcard_fixer(char * a ){
+    char temp_a[MAX_LENGTH] = {0} ; 
+    int current = 0 ;
+    bool first_end = false  ;
+    for(int i = 0 ; i < strlen(a) ; i ++ ){
+        first_end = false ; 
+        if(i == 0 && a[i] == '*' )first_end = true ; 
+        if(a[i] == '*'){
+            while(a[i+1] == '*'){
+                i ++ ; 
+            }
+        }
+        if(i == strlen(a) - 1  && a[i] == '*' && a[i-1] != '\\') first_end = true ; 
+        if(first_end == false) temp_a[current] = a[i] ;
+        current ++ ;
+    }
+    strcpy(a , temp_a) ; 
+
  }
