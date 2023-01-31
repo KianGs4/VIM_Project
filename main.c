@@ -97,20 +97,13 @@ char* COMMANDS[14] = {
     "compare",
     "tree"};
 
-struct __CMD{
-    bool STR ;
-    bool FILE ; 
-    bool POS ;
-    char str[MAX_LENGTH] ; 
-    char file[MAX_LENGTH] ; 
-    char pos[MAX_LENGTH] ; 
-}command_nen ;  
 
 int main(){ 
     while(1){
+        //Section 1 : 
         char commandline[MAX_LENGTH] = {0} ; 
         char temp_commandline[MAX_LENGTH] = {0} ;
-        scanf(" %[^\n]s" , commandline) ;
+        if(Arman_activation == false) scanf(" %[^\n]s" , commandline) ;
         strcpy(temp_commandline , commandline) ;  
         char * command ;
         char tok1[2] = " " ;  
@@ -119,46 +112,70 @@ int main(){
              printf("Invalid Command\n") ;
              continue ;
         }
-        if(strcmp(command , "cat") == 0 || strcmp(command , "createfile") == 0 || strcmp(command , "auto-indent") == 0){
-            char address[MAX_LENGTH] ={0} ;
-            bool get_address = false ;  
-            int base = 0 ; 
-            for(int i = strlen(command)-1 ; i < strlen(commandline) ; i ++){
-                if(commandline[i] == '-' && commandline[i+1] == '-' && commandline[i+2] == 'f' && commandline[i+3] == 'i' && commandline[i+4] == 'l' && commandline[i+5] == 'e' ){
-                    i += 6 ; 
-                    base = i ; 
-                    get_address = true ; 
+        //section 2  :
+        int arg =  0 ;
+        char tok ; 
+        int number_of_files = 0 ; 
+        int number_of_strings = 0 ; 
+        char POS[MAX_LENGTH] = {0} ; 
+        char STR[2][MAX_LENGTH] ; 
+        char FILE[MAX_FILES][MAX_LENGTH] ;
+        bool pos ;  
+        for(int i = strlen(command) - 1 ; i < strlen(commandline) ; i ++ ){
+            if(commandline[i] == '-' && commandline[i+1] == '-' && commandline[i+2] == 'f' && commandline[i+3] == 'i' && commandline[i+4] == 'l' && commandline[i+5] == 'e' ){
+                i += 6 ; 
+                while(1){
+                  if(commandline[i] == ' ') i ++ ;  else break  ; 
                 }
-                if(base == i ) {
-                    if(commandline[i] == ' '){
-                        base ++ ; 
-                        continue ; 
+                arg = i ; 
+                if(commandline[i] == '\"') tok = '\"' ;  else tok = ' ' ; 
+                while(1){
+                    if(tok == ' '){
+                        if(commandline[i] == tok){
+                            FILE[number_of_files][i - arg] = '\0' ;
+                            break ; 
+                        }
+                    }else{
+                        if(arg != i && commandline[i] == tok && commandline[i-1] != '\\'){
+                             FILE[number_of_files][i - arg] = commandline[i] ;
+                             FILE[number_of_files][i+1 - arg] = '\0' ;  
+                             break ;
+                        }   
                     }
+                    FILE[number_of_files][i - arg] =  commandline[i] ; 
+                    i ++ ; 
                 }
-                if(get_address){
-                    address[i -base] = commandline[i] ; 
+                number_of_files ++ ; 
+             }
+            if(commandline[i] == '-' && commandline[i+1] == '-' && commandline[i+2] == 's' && commandline[i+3] == 't' && commandline[i+4] == 'r'){
+                i += 5 ; 
+                while(1){
+                  if(commandline[i] == ' ') i ++ ;  else break  ; 
                 }
-            }
-            translate_dir(address) ; 
-            if(Dir_exist(address) == false && strcmp(command , "createfile")) {
-                printf("Directory doesn't exist\n") ;
-                continue ; 
-            }
-            FILE * file ; 
-            file = fopen(address , "r") ; 
-            if(file == NULL && strcmp(command  , "createfile")){
-                 printf("file doesn't exist\n") ; 
-                 continue ; 
-            } else {
-                if(strcmp(command  , "createfile")) fclose(file) ; 
-            }
-
-            if(strcmp(command , "createfile") == 0  ) createfile(address) ; else
-            if(strcmp(command , "cat") == 0 ) cat(address) ; else 
-            if(strcmp(command , "auto-indent") == 0) closing_pair(address) ; 
-         }
-
-    //d/d
+                arg = i ; 
+                if(commandline[i] == '\"') tok = '\"' ;  else tok = ' ' ; 
+                while(1){
+                    if(tok == ' '){
+                        if(commandline[i] == tok){
+                            STR[number_of_strings][i - arg] = '\0' ;
+                            break ; 
+                        }
+                    }else{
+                        if(arg != i && commandline[i] == tok && commandline[i-1] != '\\'){
+                             STR[number_of_strings][i - arg] = commandline[i] ;
+                             STR[number_of_strings][i+1 - arg] = '\0' ;  
+                             break ;
+                        }   
+                    }
+                    STR[number_of_strings][i - arg] =  commandline[i] ; 
+                    i ++ ; 
+                }
+                number_of_strings ++ ; 
+             }
+        } 
+        for(int i = 0 ; i < number_of_strings ; i++){
+            printf("%s\n" , STR[i])  ;
+        }
     } 
     return 0 ; 
 }
@@ -823,7 +840,7 @@ void translate_dir(char * address) {
     for(int i = 0 ; i < strlen(address)  ; i++ ){
     address[i] = address[i+k] ; 
    }
-    if(address[strlen(address) - 1] == '\"')address[strlen(address) - 1] = address[strlen(address)] ; 
+    if(address[strlen(address) - 1] == '\"' )address[strlen(address) - 1] = address[strlen(address)] ; 
 
  } 
 
