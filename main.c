@@ -48,6 +48,7 @@ void copy_str(char * address , int line  , int byte , int size , int ward ) ;
 void cut_str(char * address , int line  , int byte , int size , int ward) ; 
 void paste_str(char * address , int line , int byte) ; 
 void find_str( char * address , char * string)  ;
+void Show_find(int findcase[MAX_FINDCASE] , int , char * address ) ; 
 void replace_str(char * address , char * string1 , char * string2  ) ; 
 void grep_str( int num_file  , char files[MAX_FILES][MAX_LENGTH]  , char * string) ; 
 void closing_pair(char * address  ) ; 
@@ -55,6 +56,11 @@ void text_comprator(char * file1 , char * file2) ;
 void dir_tree(char * dirname , int , int ) ; 
 int line_counter(char * address) ;
 int one_differ(char * string1 , char * string2) ; 
+
+
+
+bool Search_Commands(char * command) ; 
+bool Dir_exist(char * address) ; 
 
 struct option1{
     bool byword ; 
@@ -74,16 +80,86 @@ struct mode{
     bool end_multichar ;
 }Wildcard ; 
 
+
+char* COMMANDS[14] = {
+    "createfile",
+    "insertstr",
+    "cat",
+    "removestr",
+    "copystr",
+    "cutstr",
+    "pastestr",
+    "find",
+    "replace",
+    "grep",
+    "undo",
+    "auto-indent",
+    "compare",
+    "tree"};
+
+struct __CMD{
+    bool STR ;
+    bool FILE ; 
+    bool POS ;
+    char str[MAX_LENGTH] ; 
+    char file[MAX_LENGTH] ; 
+    char pos[MAX_LENGTH] ; 
+}command_nen ;  
+
 int main(){ 
- Wildcard.mode = true  ; 
- opt_find.count = false ;
- opt_find.at = 0 ;
- opt_find.all = true ; 
- opt_find.byword = false ; 
- char  address[MAX_LENGTH] = {0} ; 
- char  string[MAX_LENGTH] ={0}  ;
- scanf("%s%s" , address , string) ; 
-  find_str(address  , string) ; 
+    while(1){
+        char commandline[MAX_LENGTH] = {0} ; 
+        char temp_commandline[MAX_LENGTH] = {0} ;
+        scanf(" %[^\n]s" , commandline) ;
+        strcpy(temp_commandline , commandline) ;  
+        char * command ;
+        char tok1[2] = " " ;  
+        command = strtok(temp_commandline , tok1) ; 
+        if(Search_Commands(command) == false){
+             printf("Invalid Command\n") ;
+             continue ;
+        }
+        if(strcmp(command , "cat") == 0 || strcmp(command , "createfile") == 0 || strcmp(command , "auto-indent") == 0){
+            char address[MAX_LENGTH] ={0} ;
+            bool get_address = false ;  
+            int base = 0 ; 
+            for(int i = strlen(command)-1 ; i < strlen(commandline) ; i ++){
+                if(commandline[i] == '-' && commandline[i+1] == '-' && commandline[i+2] == 'f' && commandline[i+3] == 'i' && commandline[i+4] == 'l' && commandline[i+5] == 'e' ){
+                    i += 6 ; 
+                    base = i ; 
+                    get_address = true ; 
+                }
+                if(base == i ) {
+                    if(commandline[i] == ' '){
+                        base ++ ; 
+                        continue ; 
+                    }
+                }
+                if(get_address){
+                    address[i -base] = commandline[i] ; 
+                }
+            }
+            translate_dir(address) ; 
+            if(Dir_exist(address) == false && strcmp(command , "createfile")) {
+                printf("Directory doesn't exist\n") ;
+                continue ; 
+            }
+            FILE * file ; 
+            file = fopen(address , "r") ; 
+            if(file == NULL && strcmp(command  , "createfile")){
+                 printf("file doesn't exist\n") ; 
+                 continue ; 
+            } else {
+                if(strcmp(command  , "createfile")) fclose(file) ; 
+            }
+
+            if(strcmp(command , "createfile") == 0  ) createfile(address) ; else
+            if(strcmp(command , "cat") == 0 ) cat(address) ; else 
+            if(strcmp(command , "auto-indent") == 0) closing_pair(address) ; 
+         }
+
+    //d/d
+    } 
     return 0 ; 
 }
 
@@ -417,7 +493,11 @@ void find_str( char * address , char * string ){
         }
     }
     //scetion 2 : show 
-    if(opt_find.count){
+    Show_find(findcase , cnt , address) ; 
+    fclose(my_file) ;
+ }  
+void Show_find(int findcase[MAX_FINDCASE] , int cnt , char * address){
+     if(opt_find.count){
        if(Arman_activation == false ) printf("%d\n" , cnt ) ; 
        if(Arman_activation == true){
         char word[15] ; 
@@ -473,9 +553,7 @@ void find_str( char * address , char * string ){
         } 
     }
   }
-  fclose(my_file) ;
- }  
-
+ }
 void replace_str(char * address , char * string1 , char * string2  ){
     int findcase[MAX_FINDCASE][2]  ;
     int cnt = 0 ; 
@@ -745,7 +823,7 @@ void translate_dir(char * address) {
     for(int i = 0 ; i < strlen(address)  ; i++ ){
     address[i] = address[i+k] ; 
    }
-    if(k != 0)address[strlen(address) - 1] = address[strlen(address)] ; 
+    if(address[strlen(address) - 1] == '\"')address[strlen(address) - 1] = address[strlen(address)] ; 
 
  } 
 
@@ -1151,6 +1229,7 @@ int one_differ(char * string1 , char * string2) {
  }
 
 void wildcard_fixer(char * a ){
+
     char temp_a[MAX_LENGTH] = {0} ; 
     int current = 0 ;
     bool first_end = false  ;
@@ -1168,4 +1247,31 @@ void wildcard_fixer(char * a ){
     }
     strcpy(a , temp_a) ; 
 
+ }
+bool Search_Commands(char * string){
+    for(int i = 0 ; i < 14 ; i ++) {
+        if(strcmp(string , COMMANDS[i]) == 0) return true ; 
+    }
+    return false ;
+ }
+
+bool Dir_exist(char * address) {
+    int slash = 0 ;
+  for(int i = 0 ; i < strlen(address) ; i++){
+      if(address[i] == '/' ) slash ++ ; 
+  }
+  if(slash == 0) return true ; 
+  int temp_slash = slash ; 
+   char __dirname[MAX_LENGTH] = {0} ; 
+   for(int i = 0 ; ; i ++){
+    if(address[i] == '/') slash -- ; 
+    if(slash == 0) break ; 
+    __dirname[i] = address[i] ; 
+   }
+   if(chdir(__dirname) == 0 ) {
+        for(int i = 0 ; i < temp_slash ; i ++){
+            chdir("..") ; 
+        }
+   }else return false ;
+   return true ; 
  }
