@@ -18,10 +18,19 @@
 #define MAX_NUMBER  10000
 #define MAX_SIZE 90000
 #define MAX_WORDS 50
+#define MAX_DIGIT 10
 
 int current_command = 0 ;
 char temp_save[MAX_SIZE] =  {0} ; 
 bool Arman_activation = false ; 
+
+char arman_sign[3] = "=D\0" ;  
+char at_sign[4] = "-at\0" ;
+char count_sign[7] = "-count\0" ;
+char all_sign[5] = "-all\0" ; 
+char byword_sign[8] = "-byword\0" ;
+char c_grep_sign[3] = "-c\0" ; 
+char l_grep_sign[3] = "-l\0" ; 
 
 void create_dir(const char * address) ;
 void translate_dir(char * address) ; 
@@ -33,7 +42,7 @@ int end_brace_finder(char * string , int* check) ;
 bool generate_brace(char * address , int def , int  start[2] , int end[2]) ; 
 void correct_first_brace(char * address , int line , int byte , int* end  ) ; 
 void correct_end_brace(char * address , int*line , int byte  ) ; 
-int arrangr_by_space(char * string , int start , int end) ; 
+int arrange_by_space(char * string , int start , int end) ; 
 int start_printing(char * string) ;
 void show_cmp1(char * a , char * b  , int m ) ; 
 void show_cmp2(char * a  , int n ,  int m ) ;
@@ -61,6 +70,8 @@ int one_differ(char * string1 , char * string2) ;
 
 bool Search_Commands(char * command) ; 
 bool Dir_exist(char * address) ; 
+bool In_commandline(char * string  , char * pattern) ; 
+void rec_wildcard(char * string) ; 
 
 struct option1{
     bool byword ; 
@@ -98,12 +109,14 @@ char* COMMANDS[14] = {
     "tree"};
 
 
-int main(){ 
+int main(){
+
     while(1){
         //Section 1 : 
         char commandline[MAX_LENGTH] = {0} ; 
         char temp_commandline[MAX_LENGTH] = {0} ;
         if(Arman_activation == false) scanf(" %[^\n]s" , commandline) ;
+
         strcpy(temp_commandline , commandline) ;  
         char * command ;
         char tok1[2] = " " ;  
@@ -119,8 +132,8 @@ int main(){
         int number_of_strings = 0 ; 
         char POS[MAX_LENGTH] = {0} ; 
         char STR[2][MAX_LENGTH] ; 
-        char FILE[MAX_FILES][MAX_LENGTH] ;
-        bool pos ;  
+        char FILE_ADD[MAX_FILES][MAX_LENGTH] ;
+        bool pos = false  ;  
         for(int i = strlen(command) - 1 ; i < strlen(commandline) ; i ++ ){
             if(commandline[i] == '-' && commandline[i+1] == '-' && commandline[i+2] == 'f' && commandline[i+3] == 'i' && commandline[i+4] == 'l' && commandline[i+5] == 'e' ){
                 i += 6 ; 
@@ -132,17 +145,17 @@ int main(){
                 while(1){
                     if(tok == ' '){
                         if(commandline[i] == tok){
-                            FILE[number_of_files][i - arg] = '\0' ;
+                            FILE_ADD[number_of_files][i - arg] = '\0' ;
                             break ; 
                         }
                     }else{
                         if(arg != i && commandline[i] == tok && commandline[i-1] != '\\'){
-                             FILE[number_of_files][i - arg] = commandline[i] ;
-                             FILE[number_of_files][i+1 - arg] = '\0' ;  
+                             FILE_ADD[number_of_files][i - arg] = commandline[i] ;
+                             FILE_ADD[number_of_files][i+1 - arg] = '\0' ;  
                              break ;
                         }   
                     }
-                    FILE[number_of_files][i - arg] =  commandline[i] ; 
+                    FILE_ADD[number_of_files][i - arg] =  commandline[i] ; 
                     i ++ ; 
                 }
                 number_of_files ++ ; 
@@ -172,10 +185,84 @@ int main(){
                 }
                 number_of_strings ++ ; 
              }
-        } 
-        for(int i = 0 ; i < number_of_strings ; i++){
-            printf("%s\n" , STR[i])  ;
+
+            if(commandline[i] == '-' && commandline[i+1] == '-' && commandline[i+2] == 'p' && commandline[i+3] == 'o' && commandline[i+4] == 's'){
+                pos = true ;
+                i += 5 ; 
+                while(1){
+                  if(commandline[i] == ' ') i ++ ;  else break  ; 
+                }
+                arg = i ; 
+                tok = ' ' ; 
+                while(1){
+                    if(commandline[i] == tok ) break ; 
+                    POS[i - arg] = commandline[i] ; 
+                    i ++; 
+                }
+             }
         }
+        //check errors : 
+        bool access = true ; 
+        if((command , "createfile")){
+            for(int i = 0 ; i < number_of_files ; i ++){
+                translate_dir(FILE_ADD[i]) ; 
+                if(Dir_exist(FILE_ADD[i]) == false){
+                    access = false ;
+                    printf("Directoy doesn't exist\n") ; 
+                    break ; 
+                }
+                FILE* my_file = fopen(FILE_ADD[i] , "r") ; 
+                if(my_file == NULL){
+                    printf("File doesn't exist\n") ; 
+                    access = false ; 
+                    break ; 
+                } else fclose(my_file) ; 
+            }
+        }
+        //run 
+        if(access){
+            if(strcmp(command , "cat") == 0 ) cat(FILE_ADD[0]) ;
+            if(strcmp(command , "auto-indent") == 0) closing_pair(FILE_ADD[0]) ; 
+            if(strcmp(command , "createfile") == 0 ) createfile(FILE_ADD[0]) ;
+            if(strcmp(command , "compare") == 0 ) text_comprator(FILE_ADD[0] , FILE_ADD[1]) ;  
+            if(strcmp(command , "tree") == 0 ){
+                int depth = 0 ; 
+                for(int i = strlen(command) ; i < strlen(commandline) ; i++ ){
+                    if(commandline[i] != ' '){
+                        depth *= 10 ; 
+                        depth += (int)(commandline[i] - '0') ; 
+                    }
+                }
+                char address[MAX_LENGTH] ; 
+                strcpy(address , ".") ; 
+                dir_tree(address ,  0 , depth) ; 
+             }
+            if(strcmp(command , "find") == 0){
+                translate_string(STR[0]) ; 
+                rec_wildcard(STR[0]) ; 
+                if(In_commandline(commandline , count_sign)) opt_find.count = true ; else opt_find.count = false ;  
+                if(In_commandline(commandline , all_sign)) opt_find.all = true ; else opt_find.all = false ;  
+                if(In_commandline(commandline , byword_sign)) opt_find.byword = true ; else opt_find.byword = false ;  
+                if(In_commandline(commandline , at_sign) == false ) opt_find.at = 0 ; else {
+                    for(int i = 0 ; i < strlen(commandline) ; i ++){
+                        if(commandline[i] == '-' && commandline[i+1] == 'a' && commandline[i+2] == 't' ){
+                            i += 3 ; 
+                            while(1){
+                                if(commandline[i] == ' ') i ++ ; else break ; 
+                            }
+                            opt_find.at = 0 ; 
+                            for(int j = i ; j < strlen(commandline) ; j ++) {
+                                if(commandline[j] == ' ') break ; 
+                                opt_find.at *= 10 ; 
+                                opt_find.at += (int)(commandline[j] - '0') ; 
+                            }
+                            break ; 
+                        }
+                    }
+                } 
+                find_str(FILE_ADD[0] , STR[0])  ;
+             }
+        } 
     } 
     return 0 ; 
 }
@@ -458,16 +545,15 @@ void find_str( char * address , char * string ){
         size = strlen(string) ;
         for(int i = 0 ; i < size ; i++){
             if(string[i] == '*'){
-                string_separate[number_of_words - 1][i - tok] = '\0' ;
                 tok =  0; 
                 number_of_words ++ ; 
                 continue ; 
             }
             if(string[i] == '\\' && string[i+1]== '*') ++i ;
             string_separate[number_of_words - 1][tok] = string[i] ;
-            if(i == size-1) string_separate[number_of_words - 1][i+1 - tok] = '\0' ; 
             tok ++ ; 
         }
+
         while(keep_reading){
             int pointer = ftell(my_file) - line  ;  
             int pointer_temp = pointer ; 
@@ -491,7 +577,7 @@ void find_str( char * address , char * string ){
                 if(current_word == number_of_words ){
                     if(Wildcard.first_multichar){
                         while(1){
-                            if(buffer_line[pointer - pointer_temp - 1] != ' ') pointer -- ; else
+                            if(buffer_line[pointer - pointer_temp - 1] != ' ' && (pointer - pointer_temp == 1)) pointer -- ; else
                              break ; 
                         }
                     }
@@ -509,7 +595,7 @@ void find_str( char * address , char * string ){
             if(feof(my_file)) break ;  
         }
     }
-    //scetion 2 : show 
+    //scetion 2 : show
     Show_find(findcase , cnt , address) ; 
     fclose(my_file) ;
  }  
@@ -693,7 +779,7 @@ void closing_pair(char * address ) {
      while(generate_brace(address , dif_line , start , end)) {
           correct_end_brace(address , &end[0] , end[1])  ;
           correct_first_brace(address , start[0] , start[1] , &end[0]) ;
-          arrangr_by_space(address , start[0] , end[0]) ;
+          arrange_by_space(address , start[0] , end[0]) ;
          
          dif_line = start[0] ; 
      }
@@ -1045,7 +1131,7 @@ void correct_end_brace(char * address , int* line , int byte  ){
 
  }
 
-int arrangr_by_space(char * address , int start , int end ) {
+int arrange_by_space(char * address , int start , int end ) {
      translate_dir(address) ; 
     char address2[MAX_LENGTH] ={0} ; 
     strcpy(address2 , address) ; 
@@ -1246,7 +1332,6 @@ int one_differ(char * string1 , char * string2) {
  }
 
 void wildcard_fixer(char * a ){
-
     char temp_a[MAX_LENGTH] = {0} ; 
     int current = 0 ;
     bool first_end = false  ;
@@ -1260,7 +1345,7 @@ void wildcard_fixer(char * a ){
         }
         if(i == strlen(a) - 1  && a[i] == '*' && a[i-1] != '\\') first_end = true ; 
         if(first_end == false) temp_a[current] = a[i] ;
-        current ++ ;
+        if(first_end == false ) current ++ ;
     }
     strcpy(a , temp_a) ; 
 
@@ -1292,3 +1377,27 @@ bool Dir_exist(char * address) {
    }else return false ;
    return true ; 
  }
+
+bool In_commandline(char * string  , char * pattern) {
+    for(int i =  0 ; i < strlen(string) ; i ++) {
+        for(int j = i ; j < strlen(pattern) + i ; j ++ ){
+            if(pattern[j - i] != string[j] ) break ;
+            if(j == strlen(pattern) + i - 1) return true ; 
+        }
+    }
+
+    return false ; 
+ }
+
+
+void rec_wildcard(char * string){
+    if(string[0] == '*') Wildcard.first_multichar = true ; else Wildcard.first_multichar = false ; 
+    if(string[strlen(string) - 1] == '*' && string[strlen(string) - 2] != '\\') Wildcard.end_multichar = true ;  else  Wildcard.end_multichar = false ;
+    for(int i = 1  ; i < strlen(string) ; i ++){
+        if(string[i] == '*' && string[i-1] != '\\'){
+         Wildcard.mode = true ; 
+         return  ;  
+        }
+    }
+    if(Wildcard.first_multichar == true ) Wildcard.mode = true  ;else Wildcard.mode  = false ; 
+ } 
