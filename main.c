@@ -10,7 +10,7 @@
 #include <windows.h>
 #include <dirent.h> 
 
-#define MAX_LENGTH  102
+#define MAX_LENGTH  302
 #define MAX_LINE 200 
 #define Empty_line  "#@!$$$*KIAN_GSVIM$$$!@#"
 #define MAX_FINDCASE 1000 
@@ -22,15 +22,19 @@
 
 int current_command = 0 ;
 char temp_save[MAX_SIZE] =  {0} ; 
+char arman_commandline[MAX_LENGTH] = {0} ; 
 bool Arman_activation = false ; 
+int  last_arman = false ; 
 
-char arman_sign[3] = "=D\0" ;  
-char at_sign[4] = "-at\0" ;
-char count_sign[7] = "-count\0" ;
-char all_sign[5] = "-all\0" ; 
-char byword_sign[8] = "-byword\0" ;
-char c_grep_sign[3] = "-c\0" ; 
-char l_grep_sign[3] = "-l\0" ; 
+char arman_sign[3] = "=D\0"      ;  
+char at_sign[4] = "-at\0"        ;
+char count_sign[7] = "-count\0"  ;
+char all_sign[5] = "-all\0"      ; 
+char byword_sign[8] ="-byword\0" ;
+char c_grep_sign[3] = "-c\0"     ; 
+char l_grep_sign[3] = "-l\0"     ; 
+char remove_flag1[3] = "-f\0"    ;
+char remove_flag2[3] = "-b\0"    ;
 
 void create_dir(const char * address) ;
 void translate_dir(char * address) ; 
@@ -115,13 +119,13 @@ int main(){
         //Section 1 : 
         char commandline[MAX_LENGTH] = {0} ; 
         char temp_commandline[MAX_LENGTH] = {0} ;
-        if(Arman_activation == false) scanf(" %[^\n]s" , commandline) ;
-
+        if(Arman_activation == false) scanf(" %[^\n]s" , commandline) ; else strcpy(commandline , arman_commandline) ; 
         strcpy(temp_commandline , commandline) ;  
         char * command ;
         char tok1[2] = " " ;  
         command = strtok(temp_commandline , tok1) ; 
         if(Search_Commands(command) == false){
+            Arman_activation = false ; 
              printf("Invalid Command\n") ;
              continue ;
         }
@@ -130,10 +134,12 @@ int main(){
         char tok ; 
         int number_of_files = 0 ; 
         int number_of_strings = 0 ; 
+        int SIZE = 0 ; 
         char POS[MAX_LENGTH] = {0} ; 
         char STR[2][MAX_LENGTH] ; 
         char FILE_ADD[MAX_FILES][MAX_LENGTH] ;
         bool pos = false  ;  
+        bool arman_use = false ;
         for(int i = strlen(command) - 1 ; i < strlen(commandline) ; i ++ ){
             if(commandline[i] == '-' && commandline[i+1] == '-' && commandline[i+2] == 'f' && commandline[i+3] == 'i' && commandline[i+4] == 'l' && commandline[i+5] == 'e' ){
                 i += 6 ; 
@@ -200,14 +206,42 @@ int main(){
                     i ++; 
                 }
              }
+            if(commandline[i] == '-' && commandline[i+1] == 's' && commandline[i+2] == 'i' && commandline[i+3] == 'z' && commandline[i+4] == 'e'){
+                i += 5 ; 
+                while(1){
+                  if(commandline[i] == ' ') i ++ ;  else break  ; 
+                }
+                arg = i ; 
+                tok = ' ' ; 
+                while(1){
+                    if(commandline[i] == tok ) break ; 
+                    SIZE *= 10 ;
+                    SIZE += (int)(commandline[i] - '0') ; 
+                    i ++; 
+                }
+             }
+            if(commandline[i] == '=' && commandline[i+1] == 'D'){
+                i += 2 ; 
+                while(1){
+                if(commandline[i] == ' ') i ++ ;  else break  ; 
+                }
+                Arman_activation = true ;
+                arman_use = true  ; 
+                for(int j = i ; j < strlen(commandline) ; j ++){
+                    arman_commandline[j - i] = commandline[j] ;
+                    if(j+1 == strlen(commandline)) arman_commandline[j+1 - i] = '\0' ; 
+                }
+             }
         }
         //check errors : 
         bool access = true ; 
-        if((command , "createfile")){
+        if(arman_use == false ) last_arman = true ; 
+        if(strcmp(command , "createfile")){
             for(int i = 0 ; i < number_of_files ; i ++){
                 translate_dir(FILE_ADD[i]) ; 
                 if(Dir_exist(FILE_ADD[i]) == false){
                     access = false ;
+                    Arman_activation = false ;
                     printf("Directoy doesn't exist\n") ; 
                     break ; 
                 }
@@ -215,6 +249,7 @@ int main(){
                 if(my_file == NULL){
                     printf("File doesn't exist\n") ; 
                     access = false ; 
+                    Arman_activation = false ; 
                     break ; 
                 } else fclose(my_file) ; 
             }
@@ -227,14 +262,23 @@ int main(){
             if(strcmp(command , "compare") == 0 ) text_comprator(FILE_ADD[0] , FILE_ADD[1]) ;  
             if(strcmp(command , "tree") == 0 ){
                 int depth = 0 ; 
-                for(int i = strlen(command) ; i < strlen(commandline) ; i++ ){
-                    if(commandline[i] != ' '){
+                bool sign = true ; 
+                int i = strlen(command) ; 
+                while(1){
+                    if(commandline[i] == ' ') i ++  ; else break ; 
+                }
+                for( i ; i < strlen(commandline) ; i++ ){
+                    if(commandline[i] == ' ') break ;
+                        if(commandline[i] == '-'){
+                            sign = false ; 
+                            continue ; 
+                        }
                         depth *= 10 ; 
                         depth += (int)(commandline[i] - '0') ; 
-                    }
                 }
                 char address[MAX_LENGTH] ; 
                 strcpy(address , ".") ; 
+                if(sign == false) depth *= -1 ; 
                 dir_tree(address ,  0 , depth) ; 
              }
             if(strcmp(command , "find") == 0){
@@ -260,9 +304,81 @@ int main(){
                         }
                     }
                 } 
+                if((opt_find.at != 0 && opt_find.all == true) || (opt_find.count == true && (opt_find.at != 0  | opt_find.all == true | opt_find.byword == true))){
+                    printf("Those options doesn't match\n") ; 
+                    continue ; 
+                }
                 find_str(FILE_ADD[0] , STR[0])  ;
              }
-        } 
+            if(strcmp(command , "replace") == 0 ){
+                // translate_string(STR[0]) ; 
+                 translate_string(STR[1]) ; 
+                rec_wildcard(STR[0]) ; 
+                if(In_commandline(commandline , all_sign)) opt_find.all = true ; else opt_find.all = false ;  
+                if(In_commandline(commandline , at_sign) == false ) opt_find.at = 0 ; else {
+                    for(int i = 0 ; i < strlen(commandline) ; i ++){
+                        if(commandline[i] == '-' && commandline[i+1] == 'a' && commandline[i+2] == 't' ){
+                            i += 3 ; 
+                            while(1){
+                                if(commandline[i] == ' ') i ++ ; else break ; 
+                            }
+                            opt_find.at = 0 ; 
+                            for(int j = i ; j < strlen(commandline) ; j ++) {
+                                if(commandline[j] == ' ') break ; 
+                                opt_find.at *= 10 ; 
+                                opt_find.at += (int)(commandline[j] - '0') ; 
+                            }
+                            break ; 
+                        }
+                    }
+                } 
+                if((opt_find.at != 0 && opt_find.all == true)){
+                    printf("Those options doesn't match\n") ; 
+                    continue ; 
+                }
+                replace_str(FILE_ADD[0]  , STR[0] , STR[1]) ;                 
+             }
+            if(strcmp(command , "grep") == 0 ){
+                if(In_commandline(commandline , l_grep_sign)) opt_grep.l = true ; else opt_grep.l = false ;  
+                if(In_commandline(commandline , c_grep_sign)) opt_grep.c = true ; else opt_grep.c = false ;  
+                grep_str(number_of_files , FILE_ADD , STR[0] ) ;
+
+             }
+
+            if(pos){
+                int line = 0 ; 
+                int  byte = 0 ; 
+                char tokken[2] = ":" ; 
+                char * help  = strtok(POS , tokken ) ; 
+                for(int i = 0 ; i < strlen(help) ; i ++){
+                    line *= 10 ; 
+                    line += (int)(help[i] - '0') ; 
+            
+                }
+                help = strtok(NULL , tokken) ; 
+                for(int i = 0 ; i < strlen(help) ; i ++){
+                    byte *= 10 ; 
+                    byte += (int)(help[i] - '0') ; 
+                }
+                if(strcmp(command , "insertstr") == 0 ) insert_str(FILE_ADD[0] , STR[0] , line , byte ) ; 
+                if(strcmp(command , "pastestr") == 0 ) paste_str(FILE_ADD[0] , line, byte) ; else{
+                        int ward = 0 ;
+                        if(In_commandline(commandline , remove_flag1)) ward = 1 ;
+                        if(In_commandline(commandline , remove_flag2)) ward = -1 ;
+                        if(strcmp(command , "removestr") == 0 ) remove_str(FILE_ADD[0] ,line , byte , SIZE , ward ) ;
+                        if(strcmp(command , "copystr") == 0) copy_str(FILE_ADD[0] ,line , byte , SIZE , ward ) ;
+                        if(strcmp(command , "cutstr") == 0 ) cut_str(FILE_ADD[0] ,line , byte , SIZE , ward ) ;
+
+
+                }
+
+             }
+
+            if(arman_use == false ){
+                 Arman_activation = false ; 
+                temp_save[0] = '\0' ; 
+             }
+        }
     } 
     return 0 ; 
 }
@@ -280,20 +396,18 @@ void createfile(char * address){
  }
 
 void insert_str(char * address  , char * string  , int line  , int byte ) {
- translate_dir(address) ; 
  char address2[MAX_LENGTH] ; 
  strcpy(address2 , address) ; 
  strcat(address2 , "temp") ; 
  FILE * my_file = fopen(address , "r") ; 
  FILE * temp_file = fopen(address2 , "w") ; 
- char newline[MAX_LENGTH] = {0} ; 
+ char newline[MAX_SIZE] = {0} ; 
  translate_string(string) ; 
  char buffer_line[MAX_LENGTH] ; 
  int current_line = 1 ;
  bool ISend = true ;   
  bool keep_reading = true ;
  int file_size = line_counter(address) ;
- printf("%d" , file_size) ;   
  while(keep_reading == true){
         fgets(buffer_line , MAX_LENGTH , my_file) ;
         if(current_line > file_size){
@@ -302,7 +416,7 @@ void insert_str(char * address  , char * string  , int line  , int byte ) {
             }
         if(current_line == line){
             for(int i = 0 ; i < byte ; i ++ ) newline[i] = ' ' ; 
-            strcat(newline , string ) ;
+            if(Arman_activation == false) strcat(newline , string ) ; else strcat(newline , temp_save) ; 
             fputs(newline , temp_file) ; 
             keep_reading = false ;
         }
@@ -315,12 +429,12 @@ void insert_str(char * address  , char * string  , int line  , int byte ) {
             buffer_line[strlen(buffer_line) - 1 ] = buffer_line[strlen(buffer_line)] ; 
             strcpy(newline , buffer_line) ; 
             for(int i = 0 ; i < byte - strlen(buffer_line)   ; i ++ ) strcat(newline , " ")  ; 
-            strcat(newline , string) ; 
+            if(Arman_activation == false ) strcat(newline , string) ; else strcat(newline , temp_save) ;  
             if(file_size != current_line) strcat(newline , "\n") ; 
             fputs(newline , temp_file) ; 
            }else{
             memcpy(newline  , buffer_line , byte) ; 
-            strcat(newline , string) ;
+            if(Arman_activation == false ) strcat(newline , string) ; else strcat(newline , temp_save) ;  
             int temp_size = strlen(newline) ;  
             for(int i  = 0 ; i+byte < strlen(buffer_line) ; i++){
                 newline[temp_size + i] = buffer_line[i + byte] ; 
@@ -727,6 +841,8 @@ void grep_str(int num_file  , char files[MAX_FILES][MAX_LENGTH]  , char * string
         bool keep_reading = true ; 
         char buffer_line[MAX_LENGTH] ; 
         int current_letter = 0 ;
+        if(Arman_activation == true && last_arman == false  ) strcpy(string , temp_save) ; 
+        if(string[strlen(string) - 1] == '\n') string[strlen(string) - 1] = '\0' ; 
         int size = strlen(string) ;
         while(fgets(buffer_line , MAX_LENGTH , my_file) != NULL && keep_reading == true ){
             for(int j = 0 ; j < strlen(buffer_line) ; j ++ ){
@@ -735,19 +851,19 @@ void grep_str(int num_file  , char files[MAX_FILES][MAX_LENGTH]  , char * string
                     current_letter = 0 ;  
                     if(opt_grep.c != true){
                         if(opt_grep.l != true){
-                            if(Arman_activation == false) printf("%s: %s" , files[i]  , buffer_line ) ;
-                            if(Arman_activation == true){
+                            if(Arman_activation == false || last_arman) printf("%s: %s" , files[i]  , buffer_line ) ;
+                            if(Arman_activation == true && last_arman == false ){
                                 strcat(temp_save , files[i]) ;
                                 strcat(temp_save , ": ") ;
                                 strcat(temp_save , buffer_line) ;
                             }
                             if(buffer_line[strlen(buffer_line) - 1] != '\n'){
-                                if(Arman_activation == false) printf("\n") ;
-                                if(Arman_activation == true) strcat(temp_save , "\n") ;  
+                                if(Arman_activation == false || last_arman ) printf("\n") ;
+                                if(Arman_activation == true && last_arman == false  ) strcat(temp_save , "\n") ;  
                                 }
                             }else{
-                                if(Arman_activation == false) printf("%s\n"  , files[i]) ;
-                                if(Arman_activation == true){
+                                if(Arman_activation == false || last_arman ) printf("%s\n"  , files[i]) ;
+                                if(Arman_activation == true && last_arman == false  ){
                                     strcat(temp_save , files[i]) ;
                                     strcat(temp_save , "\n") ; 
                                 } 
@@ -763,8 +879,8 @@ void grep_str(int num_file  , char files[MAX_FILES][MAX_LENGTH]  , char * string
         fclose(my_file) ; 
     }
     if(opt_grep.c){
-        if(Arman_activation == false) printf("%d\n" , lines_with_word) ;
-        if(Arman_activation == true) {
+        if(Arman_activation == false || last_arman ) printf("%d\n" , lines_with_word) ;
+        if(Arman_activation == true  && last_arman == false  ) {
             char word[15] ;
             sprintf(word , "%d" , lines_of_file) ; 
             strcat(word , "\n") ;
@@ -815,7 +931,7 @@ void text_comprator(char * file1 , char * file2){
 void dir_tree(char * dirname , int depth , int limit  ) {
     if(limit == -1) limit = MAX_NUMBER ;
     if(limit < -1){
-        if(Arman_activation == false) printf("INVALID DEPTH") ;
+        if(Arman_activation == false) printf("INVALID DEPTH\n") ;
         if(Arman_activation == true) strcat(temp_save , "INVALID DEPTH") ;  
         return ; 
     } 
@@ -837,15 +953,7 @@ void dir_tree(char * dirname , int depth , int limit  ) {
                 if(i == 0 ) printf("%c" , 195) ;
                 if(i != 0 ) printf("%c" , 196) ;
              }else{
-                char word[15] ;
-                if(i == 0 ){
-                    word[0] = 195 ; 
-                    strcat(temp_save , word) ; 
-                } 
-                if(i != 0 ){
-                     word[0] = 196 ; 
-                     strcat(temp_save , word) ;
-                }
+                strcat(temp_save , "-") ; 
              }
            }
           }
@@ -1391,6 +1499,7 @@ bool In_commandline(char * string  , char * pattern) {
 
 
 void rec_wildcard(char * string){
+
     if(string[0] == '*') Wildcard.first_multichar = true ; else Wildcard.first_multichar = false ; 
     if(string[strlen(string) - 1] == '*' && string[strlen(string) - 2] != '\\') Wildcard.end_multichar = true ;  else  Wildcard.end_multichar = false ;
     for(int i = 1  ; i < strlen(string) ; i ++){
@@ -1401,3 +1510,4 @@ void rec_wildcard(char * string){
     }
     if(Wildcard.first_multichar == true ) Wildcard.mode = true  ;else Wildcard.mode  = false ; 
  } 
+
