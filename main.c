@@ -52,6 +52,7 @@ void show_cmp1(char * a , char * b  , int m ) ;
 void show_cmp2(char * a  , int n ,  int m ) ;
 void show_cmp3(char * a , char * b , int m , int p) ;
 void wildcard_fixer(char * a ); 
+void Build_backup(char * address) ;
 
 void createfile(char * address) ; 
 void insert_str(char * address  , char * string  , int line  , int byte ) ; 
@@ -67,6 +68,8 @@ void grep_str( int num_file  , char files[MAX_FILES][MAX_LENGTH]  , char * strin
 void closing_pair(char * address  ) ; 
 void text_comprator(char * file1 , char * file2) ; 
 void dir_tree(char * dirname , int , int ) ; 
+void Find_backup(char * address ) ; 
+
 int line_counter(char * address) ;
 int one_differ(char * string1 , char * string2) ; 
 
@@ -257,7 +260,10 @@ int main(){
         //run 
         if(access){
             if(strcmp(command , "cat") == 0 ) cat(FILE_ADD[0]) ;
-            if(strcmp(command , "auto-indent") == 0) closing_pair(FILE_ADD[0]) ; 
+            if(strcmp(command , "auto-indent") == 0){
+                 Build_backup(FILE_ADD[0]) ;
+                 closing_pair(FILE_ADD[0]) ; 
+             }
             if(strcmp(command , "createfile") == 0 ) createfile(FILE_ADD[0]) ;
             if(strcmp(command , "compare") == 0 ) text_comprator(FILE_ADD[0] , FILE_ADD[1]) ;  
             if(strcmp(command , "tree") == 0 ){
@@ -310,10 +316,10 @@ int main(){
                 }
                 find_str(FILE_ADD[0] , STR[0])  ;
              }
-            if(strcmp(command , "replace") == 0 ){
-                // translate_string(STR[0]) ; 
+            if(strcmp(command , "replace") == 0 ){ 
+                 translate_string(STR[0]) ; 
                  translate_string(STR[1]) ; 
-                rec_wildcard(STR[0]) ; 
+               // rec_wildcard(STR[0]) ;
                 if(In_commandline(commandline , all_sign)) opt_find.all = true ; else opt_find.all = false ;  
                 if(In_commandline(commandline , at_sign) == false ) opt_find.at = 0 ; else {
                     for(int i = 0 ; i < strlen(commandline) ; i ++){
@@ -336,6 +342,7 @@ int main(){
                     printf("Those options doesn't match\n") ; 
                     continue ; 
                 }
+                Build_backup(FILE_ADD[0]) ;
                 replace_str(FILE_ADD[0]  , STR[0] , STR[1]) ;                 
              }
             if(strcmp(command , "grep") == 0 ){
@@ -360,20 +367,35 @@ int main(){
                     byte *= 10 ; 
                     byte += (int)(help[i] - '0') ; 
                 }
-                if(strcmp(command , "insertstr") == 0 ) insert_str(FILE_ADD[0] , STR[0] , line , byte ) ; 
-                if(strcmp(command , "pastestr") == 0 ) paste_str(FILE_ADD[0] , line, byte) ; else{
+                if(strcmp(command , "insertstr") == 0 ){
+                    Build_backup(FILE_ADD[0]) ;                 
+                    insert_str(FILE_ADD[0] , STR[0] , line , byte ) ; 
+                 }
+
+                if(strcmp(command , "pastestr") == 0 ){
+                     Build_backup(FILE_ADD[0]) ;
+                     paste_str(FILE_ADD[0] , line, byte) ;
+                } else{
                         int ward = 0 ;
                         if(In_commandline(commandline , remove_flag1)) ward = 1 ;
                         if(In_commandline(commandline , remove_flag2)) ward = -1 ;
-                        if(strcmp(command , "removestr") == 0 ) remove_str(FILE_ADD[0] ,line , byte , SIZE , ward ) ;
+                        if(strcmp(command , "removestr") == 0 ){
+                             Build_backup(FILE_ADD[0]) ;
+                             remove_str(FILE_ADD[0] ,line , byte , SIZE , ward ) ;
+                        }
                         if(strcmp(command , "copystr") == 0) copy_str(FILE_ADD[0] ,line , byte , SIZE , ward ) ;
-                        if(strcmp(command , "cutstr") == 0 ) cut_str(FILE_ADD[0] ,line , byte , SIZE , ward ) ;
-
+                        if(strcmp(command , "cutstr") == 0 ){
+                             Build_backup(FILE_ADD[0]) ;
+                             cut_str(FILE_ADD[0] ,line , byte , SIZE , ward ) ;
+                        }
 
                 }
 
              }
 
+            if(strcmp(command , "undo") == 0 ){
+                Find_backup(FILE_ADD[0]) ;  
+             }
             if(arman_use == false ){
                  Arman_activation = false ; 
                 temp_save[0] = '\0' ; 
@@ -782,24 +804,25 @@ void replace_str(char * address , char * string1 , char * string2  ){
     char buffer_line[MAX_LENGTH] ;
     bool keep_reading = true  ;  
     int line = 0 ;
-    int byte ;  
+    int byte = 0 ;  
     //section  1 : find  
     while(keep_reading){
         int pointer = ftell(my_file) ;
         byte = pointer ;  
-        fgets(buffer_line  , MAX_LENGTH , my_file) ; 
+        fgets(buffer_line  , MAX_LENGTH , my_file) ;
+        printf("%s\n" , buffer_line) ;  
         line ++ ;
         int current_letter = 0  ; 
         for(int i = 0 ; i < strlen(buffer_line) ; i ++ ){
             if(string1[current_letter] != buffer_line[i]){
-            pointer += current_letter+1 ;
-            current_letter = 0  ;
+                pointer += current_letter+1 ;
+                current_letter = 0  ;
             }else{
-            current_letter ++ ; 
+                current_letter ++ ; 
             }
             if(current_letter == size ){
-            findcase[cnt][0] = line  ;
-            findcase[cnt][1] = pointer - byte ;  
+                findcase[cnt][0] = line  ;
+                findcase[cnt][1] = pointer - byte ;  
             cnt ++ ; 
             current_letter = 0 ;
             pointer += size ;  
@@ -976,6 +999,49 @@ void dir_tree(char * dirname , int depth , int limit  ) {
     }
     closedir(dir);
   }
+ }
+
+void Find_backup(char * address) {
+    int counter = 0 ; 
+    char temp_address[100] = {0} ; 
+    while(1){
+      char word[3] ; 
+      sprintf(word , "%d" , counter) ; 
+      if(counter < 10) {
+        word[1] = word[0] ; 
+        word[0] = '0' ; 
+        word[2] = '\0' ;
+      }
+      strcpy(temp_address , address) ; 
+      strcat(temp_address , "tempvim") ; 
+      strcat(temp_address , word) ; 
+      FILE * use = fopen(temp_address , "r") ;
+      if(use){
+        fclose(use ) ;
+        counter ++ ;
+      }else{
+        counter -- ; 
+        sprintf(word , "%d" , counter) ; 
+        if(counter < 10) {
+        word[1] = word[0] ; 
+        word[0] = '0' ; 
+        word[2] = '\0' ;
+        }
+        strcpy(temp_address , address) ; 
+        strcat(temp_address , "tempvim") ; 
+        strcat(temp_address , word) ; 
+        FILE * temp_file = fopen(temp_address  ,"r") ; 
+        FILE * my_file = fopen(address , "w") ;
+        char buffer[MAX_LENGTH] ;
+        while(fgets(buffer , MAX_LENGTH , temp_file) != NULL){
+            fputs(buffer , my_file) ; 
+        }
+        fclose(my_file) ;
+        fclose(temp_file) ;
+        remove(temp_address) ; 
+        break ;  
+      }
+    }  
  }
 void translate_string(char * string) {
     if(string[0] == '\"'){
@@ -1500,6 +1566,7 @@ bool In_commandline(char * string  , char * pattern) {
 
 void rec_wildcard(char * string){
 
+
     if(string[0] == '*') Wildcard.first_multichar = true ; else Wildcard.first_multichar = false ; 
     if(string[strlen(string) - 1] == '*' && string[strlen(string) - 2] != '\\') Wildcard.end_multichar = true ;  else  Wildcard.end_multichar = false ;
     for(int i = 1  ; i < strlen(string) ; i ++){
@@ -1510,4 +1577,37 @@ void rec_wildcard(char * string){
     }
     if(Wildcard.first_multichar == true ) Wildcard.mode = true  ;else Wildcard.mode  = false ; 
  } 
+
+
+void Build_backup(char * address){
+    int counter = 0 ; 
+    char temp_address[100] = {0} ; 
+    while(1){
+      char word[3] ; 
+      sprintf(word , "%d" , counter) ; 
+      if(counter < 10) {
+        word[1] = word[0] ; 
+        word[0] = '0' ; 
+        word[2] = '\0' ;
+      }
+      strcpy(temp_address , address) ; 
+      strcat(temp_address , "tempvim") ; 
+      strcat(temp_address , word) ; 
+      if(fopen(temp_address , "r")){
+        counter ++ ;
+      }else{
+        FILE * my_file = fopen(address , "r") ;
+        FILE * new_temp = fopen(temp_address , "w") ; 
+        char buffer[100] ;  
+        while(fgets(buffer , 100 , my_file) != NULL) {
+          fputs(buffer , new_temp) ; 
+        }
+        fclose(my_file) ; 
+        fclose(new_temp) ; 
+        int attr = GetFileAttributes(temp_address) ; 
+        SetFileAttributes(temp_address , attr | FILE_ATTRIBUTE_HIDDEN) ;
+        break ;  
+      }
+    }  
+ }
 
