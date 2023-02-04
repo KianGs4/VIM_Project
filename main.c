@@ -263,6 +263,8 @@ int main(){
             if(strcmp(command , "auto-indent") == 0){
                  Build_backup(FILE_ADD[0]) ;
                  closing_pair(FILE_ADD[0]) ; 
+                 closing_pair(FILE_ADD[0]) ; 
+
              }
             if(strcmp(command , "createfile") == 0 ) createfile(FILE_ADD[0]) ;
             if(strcmp(command , "compare") == 0 ) text_comprator(FILE_ADD[0] , FILE_ADD[1]) ;  
@@ -1197,7 +1199,7 @@ bool generate_brace(char * address , int dif_line  , int start[2] , int end[2] )
     return false ; 
  }
 
-int first_brace_finder(char * string){
+int first_brace_finder(char * string){  
    for(int i = 0 ; i < strlen(string) ; i ++){
     if(string[i] =='{') return i ;
    }
