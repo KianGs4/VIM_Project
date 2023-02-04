@@ -257,7 +257,10 @@ void run(char * string){
         //run 
         if(access){
             if(strcmp(command , "cat") == 0 ) cat(FILE_ADD[0]) ;
-            if(strcmp(command , "auto-indent") == 0) closing_pair(FILE_ADD[0]) ; 
+            if(strcmp(command , "auto-indent") == 0){
+                 closing_pair(FILE_ADD[0]) ; 
+               //  closing_pair(FILE_ADD[0]) ;                  
+                 }
             if(strcmp(command , "createfile") == 0 ) createfile(FILE_ADD[0]) ;
             if(strcmp(command , "compare") == 0 ) text_comprator(FILE_ADD[0] , FILE_ADD[1]) ;  
             if(strcmp(command , "tree") == 0 ){
@@ -360,12 +363,18 @@ void run(char * string){
                     byte *= 10 ; 
                     byte += (int)(help[i] - '0') ; 
                 }
-                if(strcmp(command , "insertstr") == 0 ) insert_str(FILE_ADD[0] , STR[0] , line , byte ) ; 
+                if(strcmp(command , "insertstr") == 0 ){
+                        Build_backup(FILE_ADD[0]) ; 
+                     insert_str(FILE_ADD[0] , STR[0] , line , byte ) ; 
+                }
                 if(strcmp(command , "pastestr") == 0 ) paste_str(FILE_ADD[0] , line, byte) ; else{
                         int ward = 0 ;
                         if(In_commandline(commandline , remove_flag1)) ward = 1 ;
                         if(In_commandline(commandline , remove_flag2)) ward = -1 ;
-                        if(strcmp(command , "removestr") == 0 ) remove_str(FILE_ADD[0] ,line , byte , SIZE , ward ) ;
+                        if(strcmp(command , "removestr") == 0 ){
+                            Build_backup(FILE_ADD[0]) ; 
+                             remove_str(FILE_ADD[0] ,line , byte , SIZE , ward ) ;
+                        }
                         if(strcmp(command , "copystr") == 0) copy_str(FILE_ADD[0] ,line , byte , SIZE , ward ) ;
                         if(strcmp(command , "cutstr") == 0 ) cut_str(FILE_ADD[0] ,line , byte , SIZE , ward ) ;
 
@@ -373,7 +382,7 @@ void run(char * string){
                 }
 
              }
-                 if(strcmp(command , "undo") == 0 ){
+            if(strcmp(command , "undo") == 0 ){
                 Find_backup(FILE_ADD[0]) ;  
              }
             if(arman_use == false ){
@@ -396,7 +405,7 @@ void createfile(char * address){
     translate_dir(address) ; 
     create_dir(address)  ;    
     if (access(address , F_OK) == 0) {
-        printf("file already exists\n") ; 
+      //  printf("file already exists\n") ; 
     }else{
     FILE*  my_file = fopen( address  , "w") ; 
     fclose(my_file) ;        
@@ -404,7 +413,6 @@ void createfile(char * address){
  }
 
 void insert_str(char * address  , char * string  , int line  , int byte ) {
- Build_backup(address) ; 
  char address2[MAX_LENGTH] ; 
  strcpy(address2 , address) ; 
  strcat(address2 , "temp") ; 
@@ -479,7 +487,6 @@ void cat(char * address) {
  }
 
 void remove_str(char * address , int line ,  int byte , int size , int ward  ) {
-    Build_backup(address) ;
     translate_dir(address) ; 
     FILE * my_file = fopen(address  , "r+") ; 
     char address2[MAX_LENGTH] ; 
@@ -610,7 +617,7 @@ void copy_str(char * address , int line  , int byte , int size , int ward ) {
  }
 
 void cut_str(char * address , int line , int byte , int size ,  int ward){
-    
+    Build_backup(address) ; 
     copy_str(address , line , byte , size , ward) ; 
     remove_str(address , line , byte , size , ward) ; 
  }
@@ -800,7 +807,6 @@ void replace_str(char * address , char * string1 , char * string2  ){
         int pointer = ftell(my_file) ;
         byte = pointer ;  
         fgets(buffer_line  , MAX_LENGTH , my_file) ;
-        printf("%s\n" , buffer_line) ;  
         line ++ ;
         int current_letter = 0  ; 
         for(int i = 0 ; i < strlen(buffer_line) ; i ++ ){
