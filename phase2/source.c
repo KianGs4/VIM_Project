@@ -69,6 +69,8 @@ void text_comprator(char * file1 , char * file2) ;
 void dir_tree(char * dirname , int , int ) ; 
 int line_counter(char * address) ;
 int one_differ(char * string1 , char * string2) ; 
+void Find_backup(char * address ) ; 
+void Build_backup(char * address) ;
 
 
 
@@ -125,7 +127,6 @@ void run(char * string){
         command = strtok(temp_commandline , tok1) ; 
         if(Search_Commands(command) == false){
             Arman_activation = false ; 
-             printf("Invalid Command\n") ;
              break  ;
         }
         //section 2  :
@@ -270,7 +271,7 @@ void run(char * string){
                     if(commandline[i] == ' ') break ;
                         if(commandline[i] == '-'){
                             sign = false ; 
-                            continue ; 
+                            break ; 
                         }
                         depth *= 10 ; 
                         depth += (int)(commandline[i] - '0') ; 
@@ -305,7 +306,7 @@ void run(char * string){
                 } 
                 if((opt_find.at != 0 && opt_find.all == true) || (opt_find.count == true && (opt_find.at != 0  | opt_find.all == true | opt_find.byword == true))){
                     printf("Those options doesn't match\n") ; 
-                    continue ; 
+                    break ; 
                 }
                 find_str(FILE_ADD[0] , STR[0])  ;
              }
@@ -333,7 +334,7 @@ void run(char * string){
                 } 
                 if((opt_find.at != 0 && opt_find.all == true)){
                     printf("Those options doesn't match\n") ; 
-                    continue ; 
+                    break ; 
                 }
                 replace_str(FILE_ADD[0]  , STR[0] , STR[1]) ;                 
              }
@@ -372,7 +373,9 @@ void run(char * string){
                 }
 
              }
-
+                 if(strcmp(command , "undo") == 0 ){
+                Find_backup(FILE_ADD[0]) ;  
+             }
             if(arman_use == false ){
                  break ; 
                  Arman_activation = false ; 
@@ -401,6 +404,7 @@ void createfile(char * address){
  }
 
 void insert_str(char * address  , char * string  , int line  , int byte ) {
+ Build_backup(address) ; 
  char address2[MAX_LENGTH] ; 
  strcpy(address2 , address) ; 
  strcat(address2 , "temp") ; 
@@ -475,6 +479,7 @@ void cat(char * address) {
  }
 
 void remove_str(char * address , int line ,  int byte , int size , int ward  ) {
+    Build_backup(address) ;
     translate_dir(address) ; 
     FILE * my_file = fopen(address  , "r+") ; 
     char address2[MAX_LENGTH] ; 
@@ -605,10 +610,12 @@ void copy_str(char * address , int line  , int byte , int size , int ward ) {
  }
 
 void cut_str(char * address , int line , int byte , int size ,  int ward){
+    
     copy_str(address , line , byte , size , ward) ; 
     remove_str(address , line , byte , size , ward) ; 
  }
 void paste_str(char * address , int line , int byte ){  
+    Build_backup(address) ;
     char string[MAX_LENGTH] ; 
     HANDLE h;
     OpenClipboard(NULL);
@@ -1517,3 +1524,77 @@ void rec_wildcard(char * string){
     if(Wildcard.first_multichar == true ) Wildcard.mode = true  ;else Wildcard.mode  = false ; 
  } 
 
+void Build_backup(char * address){
+    int counter = 0 ; 
+    char temp_address[100] = {0} ; 
+    while(1){
+      char word[3] ; 
+      sprintf(word , "%d" , counter) ; 
+      if(counter < 10) {
+        word[1] = word[0] ; 
+        word[0] = '0' ; 
+        word[2] = '\0' ;
+      }
+      strcpy(temp_address , address) ; 
+      strcat(temp_address , "tempvim") ; 
+      strcat(temp_address , word) ; 
+      if(fopen(temp_address , "r")){
+        counter ++ ;
+      }else{
+        FILE * my_file = fopen(address , "r") ;
+        FILE * new_temp = fopen(temp_address , "w") ; 
+        char buffer[100] ;  
+        while(fgets(buffer , 100 , my_file) != NULL) {
+          fputs(buffer , new_temp) ; 
+        }
+        fclose(my_file) ; 
+        fclose(new_temp) ; 
+        int attr = GetFileAttributes(temp_address) ; 
+        SetFileAttributes(temp_address , attr | FILE_ATTRIBUTE_HIDDEN) ;
+        break ;  
+      }
+    }  
+ }
+
+void Find_backup(char * address) {
+    int counter = 0 ; 
+    char temp_address[100] = {0} ; 
+    while(1){
+      char word[3] ; 
+      sprintf(word , "%d" , counter) ; 
+      if(counter < 10) {
+        word[1] = word[0] ; 
+        word[0] = '0' ; 
+        word[2] = '\0' ;
+      }
+      strcpy(temp_address , address) ; 
+      strcat(temp_address , "tempvim") ; 
+      strcat(temp_address , word) ; 
+      FILE * use = fopen(temp_address , "r") ;
+      if(use){
+        fclose(use ) ;
+        counter ++ ;
+      }else{
+        counter -- ; 
+        sprintf(word , "%d" , counter) ; 
+        if(counter < 10) {
+        word[1] = word[0] ; 
+        word[0] = '0' ; 
+        word[2] = '\0' ;
+        }
+        strcpy(temp_address , address) ; 
+        strcat(temp_address , "tempvim") ; 
+        strcat(temp_address , word) ; 
+        FILE * temp_file = fopen(temp_address  ,"r") ; 
+        FILE * my_file = fopen(address , "w") ;
+        char buffer[MAX_LENGTH] ;
+        while(fgets(buffer , MAX_LENGTH , temp_file) != NULL){
+            fputs(buffer , my_file) ; 
+        }
+        fclose(my_file) ;
+        fclose(temp_file) ;
+        remove(temp_address) ; 
+        break ;  
+      }
+    }  
+ }

@@ -11,11 +11,14 @@ char blank[MAX_LENGTH] = "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" ;
 char clipborad[MAX_SIZE] ;
 char buffer[MAX_LINE][MAX_LENGTH] ; 
 int number_of_line = 0 ; 
+char filename[MAX_LENGTH]= {0}; 
+char dirname[MAX_LENGTH] = {0} ;
+int row , col ;
 
 
 int get_digit(int x) ; 
 void show() ; 
-
+void init_1(char * string)  ; 
 int main(int argc, char *argv[]){
 
   initscr();
@@ -23,21 +26,6 @@ int main(int argc, char *argv[]){
   keypad(stdscr, TRUE) ;
   noecho();  			
 	start_color();	
-  char filename[MAX_LENGTH]= {0}; 
-  char dirname[MAX_LENGTH] = {0} ;
-  int base ; 
-  bool get_filename = true ; 
-  for(int i = strlen(argv[1]) - 1 ; i >= 0 ; i --  ){
-    if(argv[1][i] == '/'){
-      get_filename = false ;
-      i-- ; 
-      base = i ; 
-    }
-    if(get_filename) filename[strlen(argv[1]) - 1 - i ]  = argv[1][i] ;  else dirname[base - i] = argv[1][i] ; 
-  }
-  strrev(filename) ; 
-  strrev(dirname) ; 
-  int row , col ;
   int x = 0 ;
   int y = 5 ; 
   int line_start , byte_start , line_end , byte_end ; 
@@ -47,6 +35,7 @@ int main(int argc, char *argv[]){
   init_pair(1, COLOR_CYAN, COLOR_BLACK);
   init_pair(2 , COLOR_WHITE , COLOR_RED) ;
   show(argv[1]) ; 
+  init_1(argv[1]) ;
   char save = '+' ; 
   mvprintw(number_of_line + 5   , 0 , "%s   %s %c" , mode , filename , save) ;
 	mvchgat(number_of_line + 5 , 0, -1, A_BLINK, 1, NULL);
@@ -55,7 +44,7 @@ int main(int argc, char *argv[]){
   bool keep_reading = true ; 
   while(keep_reading){
    ch = getch();
-    if(ch == 'i'){
+  if(ch == 'i'){
       mode_counter += 1 ;
       mode_counter %= 3 ; 
       mvprintw(number_of_line + 5  , 0 , "%s   %s %c" , mode[mode_counter] , filename , save) ;  
@@ -66,8 +55,8 @@ int main(int argc, char *argv[]){
       line_end   = -1 ; 
       number_of_line = 0 ;
       show(argv[1]) ;
-    }
-    if(strcmp(mode[mode_counter] , "VISUAL\0") == 0 ){
+     }
+  if(strcmp(mode[mode_counter] , "VISUAL\0") == 0 ){
       int digit = get_digit(x+1) ; 
       if(line_start == -1 && byte_start == -1){
         line_start = x+1 ; 
@@ -85,9 +74,10 @@ int main(int argc, char *argv[]){
           byte_start = y - 5 - digit;           
         }
       }
-      if(line_end !=0 && byte_end != 0 ){
+      if(line_start != -1 ){
         attron(COLOR_PAIR(2)) ; 
         int start = 0 ; 
+        if(byte_start < 0) byte_start = 0 ; 
         for(int i = line_start ; i <= line_end ; i ++){
           if(i == line_start) start = byte_start  ; else start = 0 ; 
           for(int j = start  ; j < strlen(buffer[i-1]) ; j++){
@@ -101,9 +91,9 @@ int main(int argc, char *argv[]){
         refresh() ;
         attroff(COLOR_PAIR(2)) ; 
       }
-   }
-   if(ch == ctl('x')) break ; 
-   if(ch == ':'){
+     } 
+  if(ch == ctl('x')) break ; 
+  if(ch == ':'){
       char string[MAX_LENGTH] ;
       char string_use[MAX_LENGTH] ; 
       mvprintw(number_of_line + 6 , 0 , ":") ; 
@@ -128,12 +118,15 @@ int main(int argc, char *argv[]){
 
       if(strcmp(command , "open") ==  0){
         command = strtok(NULL , tok) ;
-        if(fopen(command , "r" ) !=  NULL){
+        FILE * use = fopen(command , "r") ; 
+        if(use !=  NULL){
             erase() ; 
             number_of_line = 0 ;
             show(command) ; 
-            strcpy(argv[1] , command) ; 
-            save = '+' ;             
+            init_1(command) ; 
+            strcpy(argv[1] , command) ;  
+            save = '+' ; 
+            fclose(use) ;             
         }else{
           mvprintw(number_of_line+6 , 0  , "INVALID FILE NAME ") ; 
           getch() ; 
@@ -151,7 +144,6 @@ int main(int argc, char *argv[]){
               if(i == line_start){
                 size += strlen(buffer[i-1])-byte_start ; 
               }else{
-                size ++ ; 
                 if(i != line_end){
                   size += strlen(buffer[i-1]) ; 
                 }else{
@@ -168,12 +160,29 @@ int main(int argc, char *argv[]){
           show(argv[1]) ;
           } 
       }
+
+      if(strcmp(command , "paste") == 0 && strcmp(mode[mode_counter] ,  "NORMAL\0") ==0 ){
+        paste_str(argv[1] , x+1 , y - 5 - get_digit(x+1)  ) ; 
+        erase() ; 
+        number_of_line = 0 ; 
+        show(argv[1])  ; 
+      }      
+
+      if((strcmp(command , "u") == 0 || strcmp(command , "undo") == 0 ) && strcmp(mode[mode_counter] , "NORMAL\0") == 0){
+        Find_backup(argv[1]) ; 
+        erase() ; 
+        number_of_line = 0 ;
+        show(argv[1]) ;
+      }
+
       if(strcmp(command , "insertstr") == 0){
         run(string_use) ; 
         number_of_line = 0 ; 
         erase() ; 
         show(argv[1]) ;
       }
+
+
       mvprintw(number_of_line + 6  , 0, "%s" , blank) ; 
       move(number_of_line + 6 , 0 ) ; 
       mvprintw(number_of_line + 5  , 0 , "%s   %s %c" , mode[mode_counter] , filename , save) ;  
@@ -252,8 +261,16 @@ int get_digit(int x){
 }
 
 void show(char * address){
-    FILE * myfile = fopen(address , "r") ; 
+  FILE * myfile = fopen(address , "r") ;
 	while(fgets(buffer[number_of_line] ,  MAX_LENGTH , myfile) != NULL){
+      while(strlen(buffer[number_of_line]) > col - 7){
+        for(int i = col - 7 ; i < strlen(buffer[number_of_line]) ; i ++){
+          buffer[number_of_line +1][i - col + 7] = buffer[number_of_line][i] ; 
+        }
+        buffer[number_of_line][col - 7] = '\0' ;
+         mvprintw(number_of_line , 0 ,  "    %d %s" , number_of_line+1 , buffer[number_of_line]) ;
+        number_of_line ++  ;
+      }
       mvprintw(number_of_line , 0 ,  "    %d %s" , number_of_line+1 , buffer[number_of_line]) ;
       number_of_line ++ ; 
 
@@ -264,4 +281,22 @@ void show(char * address){
   }
   attroff(A_PROTECT) ; 
   fclose(myfile)  ;
-}
+ }
+
+
+void init_1(char * string ){
+  strcpy(filename , " ") ; 
+  strcpy(dirname , " ") ; 
+  int base ; 
+  bool get_filename = true ; 
+  for(int i = strlen(string) - 1 ; i >= 0 ; i --  ){
+    if(string[i] == '/'){
+      get_filename = false ;
+      i-- ; 
+      base = i ; 
+    }
+    if(get_filename) filename[strlen(string) - 1 - i ]  = string[i] ;  else dirname[base - i] = string[i] ; 
+  }
+  strrev(filename) ; 
+  strrev(dirname) ; 
+ }
